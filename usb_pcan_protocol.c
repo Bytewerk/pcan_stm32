@@ -11,6 +11,9 @@
 #include <string.h>
 #include <libopencm3/usb/usbd.h>
 #include "commands.h"
+#include "systime.h"
+#include "pcan_usbpro_fw.h"
+#include "pcan_usbpro_sizeof_rec.h"
 
 static volatile uint8_t is_bus_active[2] = {0, 0};
 
@@ -71,41 +74,46 @@ static void candle_usb_send_packet(usbd_device *usbd_dev, uint8_t ep, candle_usb
 }
 
 
-static void can_test(usbd_device *usbd_dev, uint8_t ep, candle_packet_record_t *request) {
+static void can_test(usbd_device *usbd_dev, uint8_t ep, union pcan_usbpro_rec_t *request) {
+	(void)ep;
+
 	candle_usb_packet_t canmsg;
 	canmsg.record_count = 1;
-	canmsg.first_record.rx_message.record_type = rt_rx_msg_8;
-	canmsg.first_record.rx_message.client = 0;
-	canmsg.first_record.rx_message.flags = request->tx_message.flags;
-	canmsg.first_record.rx_message.channel = (request->tx_message.channel==0) ? 1 : 0;
-	canmsg.first_record.rx_message.dlc = request->tx_message.dlc;
-	canmsg.first_record.rx_message.can_id = request->tx_message.can_id;
-	canmsg.first_record.rx_message.timestamp = 0;
-	memcpy(canmsg.first_record.rx_message.data, request->tx_message.data, 8);
-	candle_usb_send_packet(usbd_dev, 2, &canmsg, 4+sizeof(canmsg.first_record.rx_message));
+	canmsg.first_record.canmsg_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CANMSG_RX_8;
+	canmsg.first_record.canmsg_rx.client = 0;
+	canmsg.first_record.canmsg_rx.flags = request->canmsg_tx.flags;
+	canmsg.first_record.canmsg_rx.channel = (request->canmsg_tx.channel==0) ? 1 : 0;
+	canmsg.first_record.canmsg_rx.dlc = request->canmsg_tx.dlc;
+	canmsg.first_record.canmsg_rx.id = request->canmsg_tx.id;
+	canmsg.first_record.canmsg_rx.timestamp32 = 0;
+	memcpy(canmsg.first_record.canmsg_rx.data, request->canmsg_tx.data, 8);
+	candle_usb_send_packet(usbd_dev, 2, &canmsg, 4+sizeof(canmsg.first_record.canmsg_rx));
 }
 
 void candle_usb_send_timestamp(usbd_device *usbd_dev, uint8_t ep) {
+	(void)ep;
 	static candle_usb_packet_t packet_timestamp;
 	packet_timestamp.record_count = 1;
-	packet_timestamp.first_record.rx_timestamp.record_type = rt_rx_timestamp;
-	packet_timestamp.first_record.rx_timestamp.dummy[0] = 0;
-	packet_timestamp.first_record.rx_timestamp.dummy[1] = 0;
-	packet_timestamp.first_record.rx_timestamp.dummy[2] = 0;
-	packet_timestamp.first_record.rx_timestamp.unknown = 0;
-	packet_timestamp.first_record.rx_timestamp.ts_us = get_time_ms() * 1000;
-	candle_usb_send_packet(usbd_dev, 2, &packet_timestamp, 4+sizeof(packet_timestamp.first_record.rx_timestamp));
+	packet_timestamp.first_record.calibration_ts_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CALIBRATION_TIMESTAMP_RX;
+	packet_timestamp.first_record.calibration_ts_rx.dummy[0] = 0;
+	packet_timestamp.first_record.calibration_ts_rx.dummy[1] = 0;
+	packet_timestamp.first_record.calibration_ts_rx.dummy[2] = 0;
+	packet_timestamp.first_record.calibration_ts_rx.timestamp64[0] = 0;
+	packet_timestamp.first_record.calibration_ts_rx.timestamp64[1] = get_time_ms() * 1000;
+	candle_usb_send_packet(usbd_dev, 2, &packet_timestamp, 4+sizeof(packet_timestamp.first_record.calibration_ts_rx));
 }
 
 void candle_usb_send_busload(usbd_device *usbd_dev, uint8_t ep, uint8_t channel) {
+	(void)ep;
 	static candle_usb_packet_t packet_busload;
 	packet_busload.record_count = 1;
-	packet_busload.first_record.busload_info.record_type = rt_busload_info;
-	packet_busload.first_record.busload_info.channel = channel;
-	packet_busload.first_record.busload_info.buslast_val = 500;
-	packet_busload.first_record.busload_info.ts_us = get_time_ms() * 1000;
-	candle_usb_send_packet(usbd_dev, 2, &packet_busload, 4+sizeof(packet_busload.first_record.busload_info));
+	packet_busload.first_record.buslast_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_BUSLAST_RX;
+	packet_busload.first_record.buslast_rx.channel = channel;
+	packet_busload.first_record.buslast_rx.buslast_val = 500;
+	packet_busload.first_record.buslast_rx.timestamp32 = get_time_ms() * 1000;
+	candle_usb_send_packet(usbd_dev, 2, &packet_busload, 4+sizeof(packet_busload.first_record.buslast_rx));
 }
+
 
 void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *buf, int len) {
 
@@ -118,74 +126,67 @@ void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *b
 		int num_records = 0;
 
 		while ((++num_records <= packet->record_count) && (pos<len)) {
-			candle_packet_record_t *request = (candle_packet_record_t*) &buf[pos];
-			switch (request->generic.record_type) {
-				case rt_set_led:
-					cmd_set_led(request->set_led.channel, request->set_led.led_mode, request->set_led.timeout);
-					pos += 8;
+
+			union pcan_usbpro_rec_t *request = (union pcan_usbpro_rec_t*) &buf[pos];
+
+			switch (request->data_type) {
+
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SET_CANLED:
+					cmd_set_led(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
 					break;
-				case rt_set_bus_active:
-					cmd_set_bus_active(request->set_bus_active.channel, request->set_bus_active.bus_active_mode);
-					pos += 4;
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETCANBUSACTIVATE:
+					cmd_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
 					break;
-				case rt_get_device_id:
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR:
 					reply.record_count = 1;
-					reply.first_record.get_device_id.record_type = rt_get_device_id;
-					reply.first_record.get_device_id.channel = request->get_device_id.channel;
-					reply.first_record.get_device_id.serial_number = cmd_get_device_id(request->get_device_id.channel);
+					reply.first_record.dev_nr.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR;
+					reply.first_record.dev_nr.channel = request->dev_nr.channel;
+					reply.first_record.dev_nr.serial_num = cmd_get_device_id(request->dev_nr.channel);
 					candle_usb_send_packet(usbd_dev, ep, &reply, 4+8);
-					pos += 8;
 					break;
-				case rt_set_bitrate:
-					cmd_set_bitrate(request->set_bitrate.channel, request->set_bitrate.ccbt);
-					pos += 8;
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETBAUDRATE:
+					cmd_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
 					break;
-				case rt_set_silent:
-					cmd_set_silent(request->set_silent.channel, request->set_silent.silent_mode);
-					pos += 4;
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETSILENTMODE:
+					cmd_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
 					break;
-				case rt_set_filter:
-					cmd_set_filter_mode(request->set_filter_mode.filter_mode);
-					pos += 4;
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETFILTERMODE:
+					cmd_set_filter_mode(request->filer_mode.filter_mode);
 					break;
-				case rt_set_timestamp:
-					cmd_set_timestamp_mode(request->set_timestamp_mode.timestamp_mode);
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETGET_CALIBRATION_MSG:
+					cmd_set_timestamp_mode(request->calibration.mode);
 					candle_usb_send_timestamp(usbd_dev, 2);
-					pos += 4;
 					break;
-				case rt_tx_msg_0:
+				case DATA_TYPE_USB2CAN_STRUCT_CANMSG_TX_0:
 					can_test(usbd_dev, ep, request);
-					pos += 12;
 					break;
-				case rt_tx_msg_4:
+				case DATA_TYPE_USB2CAN_STRUCT_CANMSG_TX_4:
 					can_test(usbd_dev, ep, request);
-					pos += 16;
 					break;
-				case rt_tx_msg_8:
+				case DATA_TYPE_USB2CAN_STRUCT_CANMSG_TX_8:
 					can_test(usbd_dev, ep, request);
-					pos += 20;
 					break;
-				case rt_error_status:
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETCANBUS_ERROR_STATUS:
 					reply.record_count = 1;
-					reply.first_record.error_status.record_type = rt_error_status;
+					reply.first_record.error_status.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETCANBUS_ERROR_STATUS;
 					reply.first_record.error_status.channel = request->error_status.channel;
 					reply.first_record.error_status.status = cmd_get_error_status(request->error_status.channel);
 					candle_usb_send_packet(usbd_dev, ep, &reply, 4+8);
-					pos += 4;
 					break;
-				case rt_request_busload:
+				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETGET_BUSLAST_MSG:
 					can_request_busload(
-						request->request_busload.channel,
-						request->request_busload.mode,
-						request->request_busload.prescaler,
-						request->request_busload.sampletimequanta
+						request->buslast.channel,
+						request->buslast.mode,
+						request->buslast.prescaler,
+						request->buslast.sampletimequanta
 					);
-					pos += 8;
 					break;
 				default:
 					// unknown request type, this is bad because we do not know how long the request would be...
 					return;
 			}
+
+			pos += pcan_usbpro_sizeof_rec(request->data_type);
 		}
 	}
 }

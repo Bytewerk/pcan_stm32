@@ -11,17 +11,71 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/usb/usbd.h>
+
+#include "systime.h"
+#include "pcan_usbpro_fw.h"
 #include "usb_descriptor.h"
-#include "commands.h"
+#include "usb_pcan_protocol.h"
 
 pcan_status_t pcan_status;
 
 static usbd_device *usbdev;
 static uint8_t usbd_control_buffer[512];
-static char firmware_version[] = {0x44,0x33,0x22,0x11,0x01,0x03,0x03,0x00,0x12,0x06,0x0a,0x40,0x00,0x01,0x00,0x00};
-static char bootloader_version[] = {0x22,0x22,0x11,0x11,0x01,0x08,0x03,0x00,0x1a,0x05,0x09,0x00,0xff,0xff,0xff,0xff,0x01,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00};
-static char unknown_req_4[] = { 0x3a, 0x39, 0x38, 0x37, 0x01, 0x00, 0x00, 0x00 };
-static char unknown_req_5[] = { 0x77, 0x22, 0x1a, 0x1a, 0x07, 0x00, 0x00, 0x00 };
+
+static struct pcan_usbpro_bootloader_info_t bootloader_info = {
+	.ctrl_type = 0x11112222,
+	.version = {1, 8, 3, 0},
+	.day = 26,
+	.month = 5,
+	.year = 9,
+	.dummy = 0,
+	.serial_num_high = 0xFFFFFFFF,
+	.serial_num_low  = 0x00000001,
+	.hw_type = 0x00000100,
+	.hw_rev = 0x00000000
+};
+
+static struct pcan_usbpro_ext_firmware_info_t firmware_info = {
+	.ctrl_type = 0x11223344,
+	.version = {1, 3, 3, 0 },
+	.day = 18,
+	.month = 6,
+	.year = 10,
+	.dummy = 0x40,
+	.fw_type = 0x00000100
+};
+
+static struct pcan_usbpro_uc_chipid_t uc_chip_id = {
+	.ctrl_type = 0, // TODO find valid values
+	.chip_id = 0
+};
+
+static struct pcan_usbpro_usb_chipid_t usb_chip_id = {
+		.ctrl_type = 0, // TODO find valid values
+		.chip_id = 0
+};
+
+static struct pcan_usbpro_device_nr_t device_nr = {
+	.ctrl_type = 0x3738393a,
+	.device_nr = 1
+};
+
+static struct pcan_usbpro_cpld_info_t cpld_info = {
+	.ctrl_type = 0x1a1a2277,
+	.cpld_nr = 7
+};
+
+static struct pcan_usbpro_info_mode_t info_mode = {
+	.ctrl_type = 0, // TODO find valid values
+	.mode = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+	.flags = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+};
+
+static struct pcan_usbpro_time_mode_t time_mode = {
+	.ctrl_type = 0,
+	.time_mode = 0,
+	.flags = 0
+};
 
 static void candle_usb_rx_handler(usbd_device *usbd_dev, uint8_t ep)
 {
@@ -40,39 +94,65 @@ static int candle_control_request(usbd_device *usbd_dev,
 
 	static uint8_t buffer[128];
 
-	switch (req->bRequest) {
+	if (req->bRequest == 0) { // get information
 
-		case 0: { // get information
-			if (req->wValue==0x0000) { // bootloader version
-				memcpy(*buf, bootloader_version, sizeof(bootloader_version));
-				*len = sizeof(bootloader_version);
-			} else if (req->wValue==0x0001) { // firmware version
-				memcpy(*buf, firmware_version, sizeof(firmware_version));
-				*len = sizeof(firmware_version);
-			} else if (req->wValue==0x0004) { // unknown blob 1
-				memcpy(*buf, unknown_req_4, sizeof(unknown_req_4));
-				*len = sizeof(unknown_req_4);
-			} else if (req->wValue==0x0005) { // unknown blob 2
-				//candle_usb_data->driver_active = 1;
-				memcpy(*buf, unknown_req_5, sizeof(unknown_req_5));
-				*len = sizeof(unknown_req_5);
-			}
+		switch (req->wValue) {
 
-			return 1;
+			case USB_VENDOR_REQUEST_wVALUE_INFO_BOOTLOADER:
+				memcpy(*buf, &bootloader_info, sizeof(bootloader_info));
+				*len = sizeof(bootloader_info);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_FIRMWARE:
+				memcpy(*buf, &firmware_info, sizeof(firmware_info));
+				*len = sizeof(firmware_info);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_uC_CHIPID:
+				memcpy(*buf, &uc_chip_id, sizeof(uc_chip_id));
+				*len = sizeof(uc_chip_id);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_USB_CHIPID:
+				memcpy(*buf, &usb_chip_id, sizeof(usb_chip_id));
+				*len = sizeof(usb_chip_id);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_DEVICENR:
+				memcpy(*buf, &device_nr, sizeof(device_nr));
+				*len = sizeof(device_nr);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_CPLD:
+				memcpy(*buf, &cpld_info, sizeof(cpld_info));
+				*len = sizeof(cpld_info);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_MODE:
+				memcpy(*buf, &info_mode, sizeof(info_mode));
+				*len = sizeof(info_mode);
+				break;
+
+			case USB_VENDOR_REQUEST_wVALUE_INFO_TIMEMODE:
+				memcpy(*buf, &time_mode, sizeof(time_mode));
+				*len = sizeof(time_mode);
+				break;
+
 		}
 
-		case 2: { // config?
+		return 1;
 
-
-			if (req->wValue==0x0005) { // driver is now active, no idea what's in the rxdata (check linux driver?)
-				//candle_usb_data->driver_active = 1;
-				usbd_ep_read_packet(usbd_dev, 0, buffer, 16);
-		        return USBD_REQ_HANDLED;
-			}
-
+	} else if (req->bRequest == 2) { // config ?
+		if (req->wValue==USB_VENDOR_REQUEST_wVALUE_SETFKT_INTERFACE_DRIVER_LOADED) {
+			usbd_ep_read_packet(usbd_dev, 0, buffer, 16);
+			// data is 16 bytes, of which only 2 are used:
+			// data[0] == driver (CAN=0, LIN=1)
+			// data[1] == driver loaded (0/1)
+	        return USBD_REQ_HANDLED;
 		}
 
 	}
+
 	return 0;
 }
 
@@ -140,7 +220,7 @@ void usb_pcan_poll(void) {
 		pcan_status.t_next_timestamp = get_time_ms() + 1000;
 	}
 
-	for (int i=0; i<2; i++) {
+	for (uint8_t i=0; i<2; i++) {
 		if (pcan_status.busload_mode[i] && (pcan_status.t_next_busload[i] <= get_time_ms())) {
 			candle_usb_send_busload(usbdev, 2, i);
 			pcan_status.t_next_busload[i] = get_time_ms() + 8;
