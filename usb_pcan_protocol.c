@@ -10,10 +10,18 @@
 #include <stdint.h>
 #include <string.h>
 #include <libopencm3/usb/usbd.h>
-#include "commands.h"
 #include "systime.h"
 #include "pcan_usbpro_fw.h"
 #include "pcan_usbpro_sizeof_rec.h"
+
+
+
+typedef struct {
+	uint16_t record_count;
+	uint16_t message_counter;
+	union pcan_usbpro_rec_t first_record;
+} candle_usb_packet_t;
+
 
 static volatile uint8_t is_bus_active[2] = {0, 0};
 
