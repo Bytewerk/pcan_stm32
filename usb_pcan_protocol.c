@@ -13,7 +13,7 @@
 #include "systime.h"
 #include "pcan_usbpro_fw.h"
 #include "pcan_usbpro_sizeof_rec.h"
-
+#include "can.h"
 
 
 typedef struct {
@@ -38,9 +38,15 @@ static void cmd_set_bus_active(uint8_t channel, uint16_t bus_active_mode) {
 	is_bus_active[channel] = bus_active_mode!=0;
 }
 
-static void cmd_set_bitrate(uint8_t channel, uint32_t ccbt) {
-	(void)channel;
-	(void)ccbt;
+static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
+	//uint8_t  tripple_sample_mode = ccbt>>23 & 0x01;
+	uint8_t  tseg2 = ((ccbt >> 20) & 0x07) + 1;
+	uint8_t  tseg1 = ((ccbt >> 16) & 0x0F) + 1;
+	uint8_t  sjw   = ((ccbt>>14) & 0x03) + 1;
+	uint16_t brp_ppro = (ccbt & 0x3fff) + 1;
+
+	uint16_t brp_stm = (24 * brp_ppro) / 56;
+	can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
 }
 
 static void cmd_set_silent(uint8_t channel, uint16_t silent_mode) {
@@ -153,7 +159,7 @@ void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *b
 					candle_usb_send_packet(usbd_dev, ep, &reply, 4+8);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETBAUDRATE:
-					cmd_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
+					ppro_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETSILENTMODE:
 					cmd_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
