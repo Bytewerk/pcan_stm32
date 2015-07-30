@@ -23,9 +23,13 @@ typedef struct {
 } candle_usb_packet_t;
 
 
+static uint32_t bits_transfered[2] = {0,0};
 static usbd_device *dev = 0;
+
 void ppro_usb_protocol_init(usbd_device *usbd_dev) {
 	dev = usbd_dev;
+	bits_transfered[0] = 0;
+	bits_transfered[1] = 0;
 }
 
 static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
@@ -42,6 +46,8 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc, void *data) {
 	can_message_t msg;
 
+	if (channel>1) { channel = 1; }
+
 	if (dlc>8) { dlc = 8; }
 	msg.channel = channel;
 	msg.dlc = dlc;
@@ -49,6 +55,7 @@ static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc,
 	msg.id_and_flags = id_and_flags;
 	memcpy(msg.data, data, dlc);
 
+	bits_transfered[channel] += can_calc_message_len(&msg);
 	can_send_message(&msg);
 }
 
@@ -106,6 +113,9 @@ void ppro_rx_message(const can_message_t *msg) {
 
 	ppro_usb_send_packet(2, &canmsg, 4+sizeof(canmsg.first_record.canmsg_rx));
 
+	if (msg->channel<2) {
+		bits_transfered[msg->channel] += can_calc_message_len(msg);
+	}
 }
 
 void ppro_usb_send_timestamp(uint8_t ep) {

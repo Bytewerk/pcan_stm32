@@ -52,4 +52,6 @@ void can_set_bus_active(uint8_t channel, uint16_t mode);
 void can_set_silent(uint8_t channel, uint8_t silent_mode);
 void can_set_led(uint8_t channel, led_mode_t mode, uint32_t timeout);
 
+uint8_t can_calc_message_len(const can_message_t *msg);
+
 #endif /* CAN_H_ */

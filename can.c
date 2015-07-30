@@ -51,7 +51,6 @@ void can_set_silent(uint8_t channel, uint8_t silent_mode) {
 	(void)silent_mode;
 }
 
-
 void can_set_led(uint8_t channel, led_mode_t mode, uint32_t timeout) {
 	// TODO implement me
 	(void)channel;
@@ -63,4 +62,15 @@ void can_set_bus_active(uint8_t channel, uint16_t mode) {
 	// TODO implement me
 	(void)channel;
 	(void)mode;
+}
+
+uint8_t can_calc_message_len(const can_message_t *msg) {
+	// NOTICE this ignores stuff bits and is therefore incorrect
+	// to calculate the number of stuff bits, we would have to construct
+	// the whole can frame which would probably be a lot of overhead
+	if (msg->id_and_flags & can_flag_extid) {
+		return 64 + 8*msg->dlc + 3;
+	} else {
+		return 44 + 8*msg->dlc + 3;
+	}
 }
