@@ -15,3 +15,9 @@ void can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2,
 	(void)tseg2;
 	(void)sjw;
 }
+
+void can_set_silent(uint8_t channel, uint8_t silent_mode) {
+	// TODO implement me
+	(void)channel;
+	(void)silent_mode;
+}

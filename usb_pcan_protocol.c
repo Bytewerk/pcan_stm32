@@ -49,11 +49,6 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 	can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
 }
 
-static void cmd_set_silent(uint8_t channel, uint16_t silent_mode) {
-	(void)channel;
-	(void)silent_mode;
-}
-
 static void cmd_set_filter_mode(uint16_t filter_mode) {
 	(void)filter_mode;
 }
@@ -162,7 +157,7 @@ void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *b
 					ppro_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETSILENTMODE:
-					cmd_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
+					can_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETFILTERMODE:
 					cmd_set_filter_mode(request->filer_mode.filter_mode);
