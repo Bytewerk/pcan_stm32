@@ -40,5 +40,6 @@ int main(void) {
 
 	while (1) {
 		usb_pcan_poll();
+		can_poll();
 	}
 }

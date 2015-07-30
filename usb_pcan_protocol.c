@@ -160,7 +160,7 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 			switch (request->data_type) {
 
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SET_CANLED:
-					can_set_led(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
+					can_set_led_mode(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETCANBUSACTIVATE:
 					can_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
