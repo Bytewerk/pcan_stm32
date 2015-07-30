@@ -26,12 +26,6 @@ typedef struct {
 static volatile uint8_t is_bus_active[2] = {0, 0};
 
 
-static void cmd_set_led(uint8_t channel, uint16_t led_mode, uint32_t timeout) {
-	(void)channel;
-	(void)led_mode;
-	(void)timeout;
-}
-
 static void cmd_set_bus_active(uint8_t channel, uint16_t bus_active_mode) {
 	(void)channel;
 	(void)bus_active_mode;
@@ -141,7 +135,7 @@ void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *b
 			switch (request->data_type) {
 
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SET_CANLED:
-					cmd_set_led(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
+					can_set_led(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETCANBUSACTIVATE:
 					cmd_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);

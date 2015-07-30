@@ -21,3 +21,11 @@ void can_set_silent(uint8_t channel, uint8_t silent_mode) {
 	(void)channel;
 	(void)silent_mode;
 }
+
+
+void can_set_led(uint8_t channel, led_mode_t mode, uint32_t timeout) {
+	// TODO implement me
+	(void)channel;
+	(void)mode;
+	(void)timeout;
+}
