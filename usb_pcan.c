@@ -81,7 +81,7 @@ static void candle_usb_rx_handler(usbd_device *usbd_dev, uint8_t ep)
 {
 	uint8_t buf[256];
 	int len = usbd_ep_read_packet(usbd_dev, ep, buf, sizeof(buf));
-	usb_pcan_protocol_handle_data(usbd_dev, ep, buf, len);
+	ppro_usb_protocol_handle_data(ep, buf, len);
 }
 
 static int candle_control_request(usbd_device *usbd_dev,
@@ -208,6 +208,7 @@ void usb_pcan_init(void) {
 #endif
 
 
+	ppro_usb_protocol_init(usbdev);
 	usbd_register_set_config_callback(usbdev, candle_set_config);
 }
 
@@ -216,13 +217,13 @@ void usb_pcan_poll(void) {
 
 
 	if (pcan_status.timestamp_active && (pcan_status.t_next_timestamp <= get_time_ms())) {
-		candle_usb_send_timestamp(usbdev, 2);
+		ppro_usb_send_timestamp(2);
 		pcan_status.t_next_timestamp = get_time_ms() + 1000;
 	}
 
 	for (uint8_t i=0; i<2; i++) {
 		if (pcan_status.busload_mode[i] && (pcan_status.t_next_busload[i] <= get_time_ms())) {
-			candle_usb_send_busload(usbdev, 2, i);
+			ppro_usb_send_busload(2, i);
 			pcan_status.t_next_busload[i] = get_time_ms() + 8;
 		}
 	}

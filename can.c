@@ -7,12 +7,37 @@
 
 #include "can.h"
 
-void can_init(void) {
+static can_rx_callback_t rx_callback = 0;
 
+void can_init(void) {
+	rx_callback = 0;
+}
+
+void can_register_rx_callback(can_rx_callback_t callback) {
+	rx_callback = callback;
+}
+
+void can_notify_message(const can_message_t *msg);
+void can_notify_message(const can_message_t *msg) {
+	if (rx_callback != 0) {
+		rx_callback(msg);
+	}
+}
+
+void can_send_message(const can_message_t *msg) {
+	// TODO really implement me
+
+	can_message_t clone = *msg;
+	if (clone.channel==0) {
+		clone.channel = 1;
+	} else {
+		clone.channel = 0;
+	}
+	can_notify_message(&clone);
 }
 
 void can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
-  // TODO implement me
+	// TODO implement me
 	(void)channel;
 	(void)brp;
 	(void)tseg1;

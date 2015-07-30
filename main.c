@@ -9,8 +9,10 @@
 #include <libopencm3/stm32/flash.h>
 
 #include "config.h"
+#include "can.h"
 #include "usb_pcan.h"
 #include "systime.h"
+#include "usb_pcan_protocol.h"
 
 int main(void) {
 
@@ -34,6 +36,7 @@ int main(void) {
 
 	can_init();
 	usb_pcan_init();
+	can_register_rx_callback(ppro_rx_message);
 
 	while (1) {
 		usb_pcan_poll();
