@@ -23,15 +23,6 @@ typedef struct {
 } candle_usb_packet_t;
 
 
-static volatile uint8_t is_bus_active[2] = {0, 0};
-
-
-static void cmd_set_bus_active(uint8_t channel, uint16_t bus_active_mode) {
-	(void)channel;
-	(void)bus_active_mode;
-	is_bus_active[channel] = bus_active_mode!=0;
-}
-
 static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 	//uint8_t  tripple_sample_mode = ccbt>>23 & 0x01;
 	uint8_t  tseg2 = ((ccbt >> 20) & 0x07) + 1;
@@ -138,7 +129,7 @@ void usb_pcan_protocol_handle_data(usbd_device *usbd_dev, uint8_t ep, uint8_t *b
 					can_set_led(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETCANBUSACTIVATE:
-					cmd_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
+					can_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR:
 					reply.record_count = 1;

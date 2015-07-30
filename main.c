@@ -31,6 +31,8 @@ int main(void) {
 	rcc_clock_setup_hse_3v3(&clkcfg_96mhz);
 	//rcc_clock_setup_hse_3v3(&hse_8mhz_3v3[CLOCK_3V3_120MHZ]);
 	systime_setup();
+
+	can_init();
 	usb_pcan_init();
 
 	while (1) {
