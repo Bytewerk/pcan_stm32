@@ -5,8 +5,8 @@
  *      Author: hd
  */
 
-#ifndef USB_PCAN_H_
-#define USB_PCAN_H_
+#ifndef PPRO_USB_H_
+#define PPRO_USB_H_
 
 #include <stdint.h>
 
@@ -23,4 +23,4 @@ extern pcan_status_t pcan_status;
 void usb_pcan_init(void);
 void usb_pcan_poll(void);
 
-#endif /* USB_PCAN_H_ */
+#endif /* PPRO_USB_H_ */

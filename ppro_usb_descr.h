@@ -5,8 +5,8 @@
  *      Author: hd
  */
 
-#ifndef USB_DESCRIPTOR_H_
-#define USB_DESCRIPTOR_H_
+#ifndef PPRO_USB_DESCR_H_
+#define PPRO_USB_DESCR_H_
 
 #include <libopencm3/usb/usbd.h>
 
@@ -15,4 +15,4 @@ extern const struct usb_config_descriptor config_descriptor;
 extern const char *usb_strings[6];
 
 
-#endif /* USB_DESCRIPTOR_H_ */
+#endif /* PPRO_USB_DESCR_H_ */

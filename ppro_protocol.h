@@ -5,8 +5,8 @@
  *      Author: hd
  */
 
-#ifndef USB_PCAN_PROTOCOL_H_
-#define USB_PCAN_PROTOCOL_H_
+#ifndef PPRO_PROTOCOL_H_
+#define PPRO_PROTOCOL_H_
 
 #include <stdint.h>
 #include <libopencm3/usb/usbd.h>
@@ -19,4 +19,4 @@ void ppro_usb_send_busload(uint8_t ep, uint8_t channel);
 void ppro_rx_message(const can_message_t *msg);
 
 
-#endif /* USB_PCAN_PROTOCOL_H_ */
+#endif /* PPRO_PROTOCOL_H_ */

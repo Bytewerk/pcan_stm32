@@ -5,15 +5,15 @@
  *      Author: hd
  */
 
-#include "usb_pcan_protocol.h"
-#include "usb_pcan.h"
 #include <stdint.h>
 #include <string.h>
 #include <libopencm3/usb/usbd.h>
 #include "systime.h"
-#include "pcan_usbpro_fw.h"
-#include "pcan_usbpro_sizeof_rec.h"
+#include "external/pcan_usbpro_fw.h"
+#include "external/pcan_usbpro_sizeof_rec.h"
 #include "can.h"
+#include "ppro_protocol.h"
+#include "ppro_usb.h"
 
 
 typedef struct {

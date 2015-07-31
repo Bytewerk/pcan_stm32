@@ -5,7 +5,7 @@
  *      Author: hd
  */
 
-#include "usb_descriptor.h"
+#include "ppro_usb_descr.h"
 
 const struct usb_device_descriptor device_descriptor = {
 	.bLength = USB_DT_DEVICE_SIZE,

@@ -5,7 +5,7 @@
  *      Author: hd
  */
 
-#include "usb_pcan.h"
+#include "ppro_usb.h"
 
 #include <string.h>
 #include <libopencm3/stm32/gpio.h>
@@ -13,9 +13,9 @@
 #include <libopencm3/usb/usbd.h>
 
 #include "systime.h"
-#include "pcan_usbpro_fw.h"
-#include "usb_descriptor.h"
-#include "usb_pcan_protocol.h"
+#include "external/pcan_usbpro_fw.h"
+#include "ppro_protocol.h"
+#include "ppro_usb_descr.h"
 
 pcan_status_t pcan_status;
 

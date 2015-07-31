@@ -10,9 +10,9 @@
 
 #include "config.h"
 #include "can.h"
-#include "usb_pcan.h"
+#include "ppro_protocol.h"
+#include "ppro_usb.h"
 #include "systime.h"
-#include "usb_pcan_protocol.h"
 
 int main(void) {
 
