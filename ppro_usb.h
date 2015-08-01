@@ -15,12 +15,12 @@ typedef struct {
 	uint32_t t_next_timestamp;
 	uint8_t busload_mode[2];
 	uint32_t t_next_busload[2];
-} pcan_status_t;
+} ppro_status_t;
 
-extern pcan_status_t pcan_status;
+extern ppro_status_t ppro_status;
 
 
-void usb_pcan_init(void);
-void usb_pcan_poll(void);
+void ppro_usb_init(void);
+void ppro_usb_poll(void);
 
 #endif /* PPRO_USB_H_ */

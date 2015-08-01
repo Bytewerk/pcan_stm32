@@ -17,7 +17,7 @@
 #include "ppro_protocol.h"
 #include "ppro_usb_descr.h"
 
-pcan_status_t pcan_status;
+ppro_status_t ppro_status;
 
 static usbd_device *usbdev;
 static uint8_t usbd_control_buffer[512];
@@ -77,14 +77,14 @@ static struct pcan_usbpro_time_mode_t time_mode = {
 	.flags = 0
 };
 
-static void candle_usb_rx_handler(usbd_device *usbd_dev, uint8_t ep)
+static void ppro_usb_rx_handler(usbd_device *usbd_dev, uint8_t ep)
 {
 	uint8_t buf[256];
 	int len = usbd_ep_read_packet(usbd_dev, ep, buf, sizeof(buf));
 	ppro_usb_protocol_handle_data(ep, buf, len);
 }
 
-static int candle_control_request(usbd_device *usbd_dev,
+static int ppro_usb_control_request(usbd_device *usbd_dev,
 	struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
 	void (**complete)(usbd_device *usbd_dev, struct usb_setup_data *req))
 {
@@ -156,26 +156,26 @@ static int candle_control_request(usbd_device *usbd_dev,
 	return 0;
 }
 
-static void candle_set_config(usbd_device *usbd_dev, uint16_t wValue)
+static void ppro_usb_set_config(usbd_device *usbd_dev, uint16_t wValue)
 {
 	(void)wValue;
 
-	usbd_register_control_callback(usbd_dev, 0x43, 0x7F, candle_control_request);
+	usbd_register_control_callback(usbd_dev, 0x43, 0x7F, ppro_usb_control_request);
 
-	usbd_ep_setup(usbd_dev, 0x01, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_rx_handler);
+	usbd_ep_setup(usbd_dev, 0x01, USB_ENDPOINT_ATTR_BULK, 128, ppro_usb_rx_handler);
 	usbd_ep_setup(usbd_dev, 0x81, USB_ENDPOINT_ATTR_BULK, 128, NULL);
 
-	usbd_ep_setup(usbd_dev, 0x02, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_rx_handler);
+	usbd_ep_setup(usbd_dev, 0x02, USB_ENDPOINT_ATTR_BULK, 128, ppro_usb_rx_handler);
 	usbd_ep_setup(usbd_dev, 0x82, USB_ENDPOINT_ATTR_BULK, 128, NULL);
 
-	usbd_ep_setup(usbd_dev, 0x03, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_rx_handler);
+	usbd_ep_setup(usbd_dev, 0x03, USB_ENDPOINT_ATTR_BULK, 128, ppro_usb_rx_handler);
 	usbd_ep_setup(usbd_dev, 0x83, USB_ENDPOINT_ATTR_BULK, 128, NULL);
 
 #ifdef USE_USB_HS
-	usbd_ep_setup(usbd_dev, 0x04, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_rx_handler);
+	usbd_ep_setup(usbd_dev, 0x04, USB_ENDPOINT_ATTR_BULK, 128, ppro_usb_rx_handler);
 	usbd_ep_setup(usbd_dev, 0x84, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_tx_handler);
 
-	usbd_ep_setup(usbd_dev, 0x05, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_rx_handler);
+	usbd_ep_setup(usbd_dev, 0x05, USB_ENDPOINT_ATTR_BULK, 128, ppro_usb_rx_handler);
 	usbd_ep_setup(usbd_dev, 0x85, USB_ENDPOINT_ATTR_BULK, 128, candle_usb_tx_handler);
 #endif
 
@@ -183,8 +183,8 @@ static void candle_set_config(usbd_device *usbd_dev, uint16_t wValue)
 }
 
 
-void usb_pcan_init(void) {
-	memset(&pcan_status, 0, sizeof(pcan_status));
+void ppro_usb_init(void) {
+	memset(&ppro_status, 0, sizeof(ppro_status));
 
 #ifdef USE_USB_HS
 	rcc_periph_clock_enable(RCC_GPIOB);
@@ -209,22 +209,22 @@ void usb_pcan_init(void) {
 
 
 	ppro_usb_protocol_init(usbdev);
-	usbd_register_set_config_callback(usbdev, candle_set_config);
+	usbd_register_set_config_callback(usbdev, ppro_usb_set_config);
 }
 
-void usb_pcan_poll(void) {
+void ppro_usb_poll(void) {
 	usbd_poll(usbdev);
 
 
-	if (pcan_status.timestamp_active && (pcan_status.t_next_timestamp <= get_time_ms())) {
+	if (ppro_status.timestamp_active && (ppro_status.t_next_timestamp <= get_time_ms())) {
 		ppro_usb_send_timestamp(2);
-		pcan_status.t_next_timestamp += 1000;
+		ppro_status.t_next_timestamp += 1000;
 	}
 
 	for (uint8_t i=0; i<2; i++) {
-		if (pcan_status.busload_mode[i] && (pcan_status.t_next_busload[i] <= get_time_ms())) {
+		if (ppro_status.busload_mode[i] && (ppro_status.t_next_busload[i] <= get_time_ms())) {
 			ppro_usb_send_busload(2, i);
-			pcan_status.t_next_busload[i] += 8;
+			ppro_status.t_next_busload[i] += 8;
 		}
 	}
 

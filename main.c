@@ -35,11 +35,11 @@ int main(void) {
 	systime_setup();
 
 	can_init();
-	usb_pcan_init();
+	ppro_usb_init();
 	can_register_rx_callback(ppro_rx_message);
 
 	while (1) {
-		usb_pcan_poll();
+		ppro_usb_poll();
 		can_poll();
 	}
 }

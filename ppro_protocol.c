@@ -111,8 +111,8 @@ static void ppro_tx(union pcan_usbpro_rec_t *request) {
 
 static void ppro_set_timestamp_mode(uint16_t timestamp_mode) {
 	(void)timestamp_mode;
-	pcan_status.timestamp_active = (timestamp_mode==1);
-	pcan_status.t_next_timestamp = 0;
+	ppro_status.timestamp_active = (timestamp_mode==1);
+	ppro_status.t_next_timestamp = 0;
 }
 
 static uint32_t ppro_get_device_id(uint8_t channel) {
@@ -129,7 +129,7 @@ static uint16_t ppro_get_error_status(uint8_t channel) {
 static void ppro_request_busload(uint8_t channel, uint8_t mode, uint16_t prescaler, uint16_t quanta) {
 	(void)prescaler;
 	(void)quanta;
-	pcan_status.busload_mode[channel] = mode;
+	ppro_status.busload_mode[channel] = mode;
 }
 
 void ppro_rx_message(const can_message_t *msg) {
