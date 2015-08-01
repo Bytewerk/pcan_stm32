@@ -218,13 +218,15 @@ void usb_pcan_poll(void) {
 
 	if (pcan_status.timestamp_active && (pcan_status.t_next_timestamp <= get_time_ms())) {
 		ppro_usb_send_timestamp(2);
-		pcan_status.t_next_timestamp = get_time_ms() + 1000;
+		pcan_status.t_next_timestamp += 1000;
 	}
 
 	for (uint8_t i=0; i<2; i++) {
 		if (pcan_status.busload_mode[i] && (pcan_status.t_next_busload[i] <= get_time_ms())) {
 			ppro_usb_send_busload(2, i);
-			pcan_status.t_next_busload[i] = get_time_ms() + 8;
+			pcan_status.t_next_busload[i] += 8;
 		}
 	}
+
+	ppro_usb_flush_all();
 }

@@ -52,8 +52,8 @@ void can_register_rx_callback(can_rx_callback_t callback);
 
 void can_set_bus_active(uint8_t channel, uint16_t mode);
 void can_set_silent(uint8_t channel, uint8_t silent_mode);
-void can_set_led_mode(uint8_t channel, led_mode_t mode, uint32_t timeout);
 
+void can_set_led_mode(uint8_t channel, led_mode_t mode, uint32_t timeout);
 uint8_t can_calc_message_len(const can_message_t *msg);
 
 #endif /* CAN_H_ */

@@ -5,6 +5,7 @@
  *      Author: hd
  */
 
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <libopencm3/usb/usbd.h>
@@ -23,13 +24,55 @@ typedef struct {
 } candle_usb_packet_t;
 
 
-static uint32_t bits_transfered[2] = {0,0};
+typedef struct {
+	struct {
+		uint16_t record_count;
+		uint16_t message_counter;
+		uint8_t data[120];
+	} output_buffer;
+	unsigned output_buffer_pos;
+	uint32_t bits_transferred;
+} channel_data_t;
+
+
 static usbd_device *dev = 0;
+static channel_data_t channel_data[2];
+
 
 void ppro_usb_protocol_init(usbd_device *usbd_dev) {
 	dev = usbd_dev;
-	bits_transfered[0] = 0;
-	bits_transfered[1] = 0;
+	memset(channel_data, 0, sizeof(channel_data));
+}
+
+static void ppro_usb_flush(uint8_t ep) {
+	assert((ep==1)||(ep==2));
+	channel_data_t *data = &channel_data[ep-1];
+	if (data->output_buffer.record_count > 0) {
+		while (usbd_ep_write_packet(dev, 0x80|ep, &data->output_buffer, 4+data->output_buffer_pos) == 0);
+		data->output_buffer.record_count = 0;
+		data->output_buffer_pos = 0;
+		data->output_buffer.message_counter++;
+	}
+}
+
+void ppro_usb_flush_all(void) {
+	ppro_usb_flush(1);
+	ppro_usb_flush(2);
+}
+
+static void ppro_usb_enqueue_record(uint8_t ep, union pcan_usbpro_rec_t *record) {
+	assert((ep==1)||(ep==2));
+	channel_data_t *data = &channel_data[ep-1];
+
+	uint8_t record_length = pcan_usbpro_sizeof_rec(record->data_type);
+	if ((data->output_buffer_pos + record_length) > sizeof(data->output_buffer.data)) {
+		// not enough space left in buffer
+		ppro_usb_flush(ep);
+	}
+
+	data->output_buffer.record_count++;
+	memcpy(&data->output_buffer.data[data->output_buffer_pos], record, record_length);
+	data->output_buffer_pos += record_length;
 }
 
 static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
@@ -46,7 +89,7 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc, void *data) {
 	can_message_t msg;
 
-	if (channel>1) { channel = 1; }
+	assert((channel==0)||(channel==1));
 
 	if (dlc>8) { dlc = 8; }
 	msg.channel = channel;
@@ -55,7 +98,7 @@ static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc,
 	msg.id_and_flags = id_and_flags;
 	memcpy(msg.data, data, dlc);
 
-	bits_transfered[channel] += can_calc_message_len(&msg);
+	channel_data[channel].bits_transferred += can_calc_message_len(&msg);
 	can_send_message(&msg);
 }
 
@@ -89,63 +132,49 @@ static void ppro_request_busload(uint8_t channel, uint8_t mode, uint16_t prescal
 	pcan_status.busload_mode[channel] = mode;
 }
 
-static void ppro_usb_send_packet(uint8_t ep, candle_usb_packet_t *packet, int packet_size) {
-	static uint16_t message_counter = 0;
-	packet->message_counter = message_counter++;
-	while (usbd_ep_write_packet(dev, 0x80|ep, packet, packet_size) == 0);
-}
-
 void ppro_rx_message(const can_message_t *msg) {
-	candle_usb_packet_t canmsg;
-	canmsg.record_count = 1;
-	canmsg.first_record.canmsg_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CANMSG_RX_8;
-	canmsg.first_record.canmsg_rx.client = 0;
+	union pcan_usbpro_rec_t record;
+	record.canmsg_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CANMSG_RX_8;
+	record.canmsg_rx.client = 0;
+	record.canmsg_rx.timestamp32 = msg->timestamp;
+	record.canmsg_rx.channel = msg->channel;
+	record.canmsg_rx.id = msg->id_and_flags & 0x1FFFFFFF;
+	record.canmsg_rx.flags = msg->id_and_flags >> 30;
+	record.canmsg_rx.dlc = msg->dlc;
+	memcpy(record.canmsg_rx.data, msg->data, 8);
 
-	canmsg.first_record.canmsg_rx.timestamp32 = msg->timestamp;
-	canmsg.first_record.canmsg_rx.channel = msg->channel;
-
-	canmsg.first_record.canmsg_rx.id = msg->id_and_flags & 0x1FFFFFFF;
-	canmsg.first_record.canmsg_rx.flags = msg->id_and_flags >> 30;
-
-	canmsg.first_record.canmsg_rx.dlc = msg->dlc;
-
-	memcpy(canmsg.first_record.canmsg_rx.data, msg->data, 8);
-
-	ppro_usb_send_packet(2, &canmsg, 4+sizeof(canmsg.first_record.canmsg_rx));
+	ppro_usb_enqueue_record(2, &record);
 
 	if (msg->channel<2) {
-		bits_transfered[msg->channel] += can_calc_message_len(msg);
+		channel_data[msg->channel].bits_transferred += can_calc_message_len(msg);
 	}
 }
 
 void ppro_usb_send_timestamp(uint8_t ep) {
-	(void)ep;
-	static candle_usb_packet_t packet_timestamp;
-	packet_timestamp.record_count = 1;
-	packet_timestamp.first_record.calibration_ts_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CALIBRATION_TIMESTAMP_RX;
-	packet_timestamp.first_record.calibration_ts_rx.dummy[0] = 0;
-	packet_timestamp.first_record.calibration_ts_rx.dummy[1] = 0;
-	packet_timestamp.first_record.calibration_ts_rx.dummy[2] = 0;
-	packet_timestamp.first_record.calibration_ts_rx.timestamp64[0] = 0;
-	packet_timestamp.first_record.calibration_ts_rx.timestamp64[1] = get_time_ms() * 1000;
-	ppro_usb_send_packet(2, &packet_timestamp, 4+sizeof(packet_timestamp.first_record.calibration_ts_rx));
+	union pcan_usbpro_rec_t record;
+	record.calibration_ts_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_CALIBRATION_TIMESTAMP_RX;
+	record.calibration_ts_rx.dummy[0] = 0;
+	record.calibration_ts_rx.dummy[1] = 0;
+	record.calibration_ts_rx.dummy[2] = 0;
+	record.calibration_ts_rx.timestamp64[0] = 0;
+	record.calibration_ts_rx.timestamp64[1] = get_time_ms() * 1000;
+	ppro_usb_enqueue_record(ep, &record);
 }
 
 void ppro_usb_send_busload(uint8_t ep, uint8_t channel) {
-	(void)ep;
-	static candle_usb_packet_t packet_busload;
-	packet_busload.record_count = 1;
-	packet_busload.first_record.buslast_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_BUSLAST_RX;
-	packet_busload.first_record.buslast_rx.channel = channel;
-	packet_busload.first_record.buslast_rx.buslast_val = 500;
-	packet_busload.first_record.buslast_rx.timestamp32 = get_time_ms() * 1000;
-	ppro_usb_send_packet(2, &packet_busload, 4+sizeof(packet_busload.first_record.buslast_rx));
+	assert((channel==0)||(channel==1));
+	union pcan_usbpro_rec_t record;
+	record.buslast_rx.data_type = DATA_TYPE_USB2CAN_STRUCT_BUSLAST_RX;
+	record.buslast_rx.channel = channel;
+	record.buslast_rx.buslast_val = channel_data[0].bits_transferred;
+	channel_data[0].bits_transferred = 0;
+	record.buslast_rx.timestamp32 = get_time_ms() * 1000;
+	ppro_usb_enqueue_record(ep, &record);
 }
 
 
 void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
-
-	static candle_usb_packet_t reply;
+	union pcan_usbpro_rec_t record;
 
 	if (len>=4) {
 		candle_usb_packet_t *packet = (candle_usb_packet_t*)buf;
@@ -166,11 +195,10 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 					can_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR:
-					reply.record_count = 1;
-					reply.first_record.dev_nr.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR;
-					reply.first_record.dev_nr.channel = request->dev_nr.channel;
-					reply.first_record.dev_nr.serial_num = ppro_get_device_id(request->dev_nr.channel);
-					ppro_usb_send_packet(ep, &reply, 4+8);
+					record.dev_nr.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR;
+					record.dev_nr.channel = request->dev_nr.channel;
+					record.dev_nr.serial_num = ppro_get_device_id(request->dev_nr.channel);
+					ppro_usb_enqueue_record(ep, &record);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETBAUDRATE:
 					ppro_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
@@ -192,11 +220,10 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 					ppro_tx(request);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETCANBUS_ERROR_STATUS:
-					reply.record_count = 1;
-					reply.first_record.error_status.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETCANBUS_ERROR_STATUS;
-					reply.first_record.error_status.channel = request->error_status.channel;
-					reply.first_record.error_status.status = ppro_get_error_status(request->error_status.channel);
-					ppro_usb_send_packet(ep, &reply, 4+8);
+					record.error_status.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETCANBUS_ERROR_STATUS;
+					record.error_status.channel = request->error_status.channel;
+					record.error_status.status = ppro_get_error_status(request->error_status.channel);
+					ppro_usb_enqueue_record(ep, &record);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETGET_BUSLAST_MSG:
 					ppro_request_busload(
@@ -214,4 +241,6 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 			pos += pcan_usbpro_sizeof_rec(request->data_type);
 		}
 	}
+	ppro_usb_flush_all();
 }
+
