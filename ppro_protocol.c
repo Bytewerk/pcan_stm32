@@ -83,7 +83,7 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 	uint16_t brp_ppro = (ccbt & 0x3fff) + 1;
 
 	uint16_t brp_stm = (24 * brp_ppro) / 56;
-	can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
+	candle_can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
 }
 
 static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc, void *data) {
@@ -98,8 +98,8 @@ static void ppro_tx_message(uint8_t channel, uint32_t id_and_flags, uint8_t dlc,
 	msg.id_and_flags = id_and_flags;
 	memcpy(msg.data, data, dlc);
 
-	channel_data[channel].bits_transferred += can_calc_message_len(&msg);
-	can_send_message(&msg);
+	channel_data[channel].bits_transferred += candle_can_calc_message_len(&msg);
+	candle_can_send_message(&msg);
 }
 
 static void ppro_tx(union pcan_usbpro_rec_t *request) {
@@ -146,7 +146,7 @@ void ppro_rx_message(const can_message_t *msg) {
 	ppro_usb_enqueue_record(2, &record);
 
 	if (msg->channel<2) {
-		channel_data[msg->channel].bits_transferred += can_calc_message_len(msg);
+		channel_data[msg->channel].bits_transferred += candle_can_calc_message_len(msg);
 	}
 }
 
@@ -189,10 +189,10 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 			switch (request->data_type) {
 
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SET_CANLED:
-					can_set_led_mode(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
+					candle_can_set_led_mode(request->set_can_led.channel, request->set_can_led.mode, request->set_can_led.timeout);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETCANBUSACTIVATE:
-					can_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
+					candle_can_set_bus_active(request->bus_activity.channel, request->bus_activity.onoff);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR:
 					record.dev_nr.data_type = DATA_TYPE_USB2CAN_STRUCT_FKT_GETDEVICENR;
@@ -204,7 +204,7 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 					ppro_set_bitrate(request->baudrate.channel, request->baudrate.CCBT);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETSILENTMODE:
-					can_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
+					candle_can_set_silent(request->silent_mode.channel, request->silent_mode.onoff);
 					break;
 				case DATA_TYPE_USB2CAN_STRUCT_FKT_SETFILTERMODE:
 					// ignored

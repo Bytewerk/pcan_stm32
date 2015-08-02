@@ -10,6 +10,7 @@
 #include <string.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/can.h>
 
 static can_rx_callback_t rx_callback = 0;
 
@@ -21,22 +22,40 @@ typedef struct {
 
 static led_status_t led_status[2];
 
-void can_init(void) {
+void candle_can_init(void) {
 	rx_callback = 0;
 	memset(led_status, 0, sizeof(led_status));
 
 	// enable led outputs
 	rcc_periph_clock_enable(RCC_GPIOD);
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+
+/*
+	// enable can1
+	rcc_periph_clock_enable(RCC_GPIOD);
+	rcc_periph_clock_enable(RCC_CAN1);
+	AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTD;
+	gpio_set_mode(GPIO_BANK_CAN1_PD_RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_CAN1_PD_RX);
+	gpio_set(GPIO_BANK_CAN1_PD_RX, GPIO_CAN1_PD_RX);
+	gpio_set_mode(GPIO_BANK_CAN1_PD_TX, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_CAN1_PD_TX);
+
+	// enable can2
+	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_CAN2);
+	AFIO_MAPR |= AFIO_MAPR_CAN2_REMAP;
+	gpio_set_mode(GPIO_BANK_CAN2_RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_CAN2_RX);
+	gpio_set(GPIO_BANK_CAN2_RX, GPIO_CAN2_RX);
+	gpio_set_mode(GPIO_BANK_CAN2_TX, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_CAN2_TX);
+*/
 }
 
 void can_poll_leds(void);
 
-void can_poll(void) {
+void candle_can_poll(void) {
 	can_poll_leds();
 }
 
-void can_register_rx_callback(can_rx_callback_t callback) {
+void candle_can_register_rx_callback(can_rx_callback_t callback) {
 	rx_callback = callback;
 }
 
@@ -47,7 +66,7 @@ void can_notify_message(const can_message_t *msg) {
 	}
 }
 
-void can_send_message(const can_message_t *msg) {
+void candle_can_send_message(const can_message_t *msg) {
 	// TODO really implement me
 
 	can_message_t clone = *msg;
@@ -59,7 +78,7 @@ void can_send_message(const can_message_t *msg) {
 	can_notify_message(&clone);
 }
 
-void can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
+void candle_can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
 	// TODO implement me
 	(void)channel;
 	(void)brp;
@@ -68,19 +87,19 @@ void can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2,
 	(void)sjw;
 }
 
-void can_set_silent(uint8_t channel, uint8_t silent_mode) {
+void candle_can_set_silent(uint8_t channel, uint8_t silent_mode) {
 	// TODO implement me
 	(void)channel;
 	(void)silent_mode;
 }
 
-void can_set_bus_active(uint8_t channel, uint16_t mode) {
+void candle_can_set_bus_active(uint8_t channel, uint16_t mode) {
 	// TODO implement me
 	(void)channel;
 	(void)mode;
 }
 
-uint8_t can_calc_message_len(const can_message_t *msg) {
+uint8_t candle_can_calc_message_len(const can_message_t *msg) {
 	// NOTICE this ignores stuff bits and is therefore incorrect
 	// to calculate the number of stuff bits, we would have to construct
 	// the whole can frame which would probably be a lot of overhead
@@ -92,7 +111,7 @@ uint8_t can_calc_message_len(const can_message_t *msg) {
 }
 
 
-void can_set_led_mode(uint8_t channel, led_mode_t mode, uint32_t timeout) {
+void candle_can_set_led_mode(uint8_t channel, led_mode_t mode, uint32_t timeout) {
 	(void)timeout;
 	if (channel < 2) {
 		led_status[channel].mode = mode;

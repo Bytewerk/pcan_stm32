@@ -34,12 +34,12 @@ int main(void) {
 	//rcc_clock_setup_hse_3v3(&hse_8mhz_3v3[CLOCK_3V3_120MHZ]);
 	systime_setup();
 
-	can_init();
+	candle_can_init();
 	ppro_usb_init();
-	can_register_rx_callback(ppro_rx_message);
+	candle_can_register_rx_callback(ppro_rx_message);
 
 	while (1) {
 		ppro_usb_poll();
-		can_poll();
+		candle_can_poll();
 	}
 }
