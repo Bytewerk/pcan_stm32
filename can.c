@@ -74,19 +74,41 @@ void candle_can_send_message(const can_message_t *msg) {
 	can_notify_message(&clone);
 }
 
-void candle_can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
-	// TODO implement me
-	(void)channel;
-	(void)brp;
-	(void)tseg1;
-	(void)tseg2;
-	(void)sjw;
+void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+
+	// TODO goto init mode
+
+	uint32_t cfg = CAN_BTR(can);
+	cfg &= 0xFC8003FF; // clear all bits from sjw, ts1, ts2, brp
+
+	if (sjw>3) { sjw = 3; }
+	cfg |= (sjw<<24);
+
+	if (tseg2>7) { tseg2 = 7; }
+	cfg |= (tseg2<<20);
+
+	if (tseg1>15) { tseg1 = 15; }
+	cfg |= (tseg1<<16);
+
+	if (brp>1023) { brp = 1023; }
+	cfg |= brp;
+
+	CAN_BTR(can) = cfg;
+
+	// TODO leave init mode
 }
 
 void candle_can_set_silent(uint8_t channel, uint8_t silent_mode) {
-	// TODO implement me
-	(void)channel;
-	(void)silent_mode;
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+
+	// TODO goto init mode
+	if (silent_mode) {
+		CAN_BTR(can) = CAN_BTR(can) | 0x80000000; // set SILM bit
+	} else {
+		CAN_BTR(can) = CAN_BTR(can) & 0x7FFFFFFF; // clear SILM bit
+	}
+	// TODO leave init mode
 }
 
 void candle_can_set_bus_active(uint8_t channel, uint16_t mode) {

@@ -46,7 +46,7 @@ typedef enum {
 void candle_can_init(void);
 void candle_can_poll(void);
 
-void candle_can_set_bitrate(uint8_t channel, uint8_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw);
+void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw);
 void candle_can_send_message(const can_message_t *msg);
 void candle_can_register_rx_callback(can_rx_callback_t callback);
 
