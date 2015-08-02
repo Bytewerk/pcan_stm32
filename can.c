@@ -30,23 +30,19 @@ void candle_can_init(void) {
 	rcc_periph_clock_enable(RCC_GPIOD);
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO14 | GPIO15);
 
-/*
 	// enable can1
 	rcc_periph_clock_enable(RCC_GPIOD);
 	rcc_periph_clock_enable(RCC_CAN1);
-	AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTD;
-	gpio_set_mode(GPIO_BANK_CAN1_PD_RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_CAN1_PD_RX);
-	gpio_set(GPIO_BANK_CAN1_PD_RX, GPIO_CAN1_PD_RX);
-	gpio_set_mode(GPIO_BANK_CAN1_PD_TX, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_CAN1_PD_TX);
+	gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0 | GPIO1);
+	gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO0 | GPIO1);
+	gpio_set_af(GPIOD, GPIO_AF9, GPIO0 | GPIO1);
 
 	// enable can2
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_CAN2);
-	AFIO_MAPR |= AFIO_MAPR_CAN2_REMAP;
-	gpio_set_mode(GPIO_BANK_CAN2_RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_CAN2_RX);
-	gpio_set(GPIO_BANK_CAN2_RX, GPIO_CAN2_RX);
-	gpio_set_mode(GPIO_BANK_CAN2_TX, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_CAN2_TX);
-*/
+	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
+	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO12 | GPIO13);
+	gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
 }
 
 void can_poll_leds(void);
