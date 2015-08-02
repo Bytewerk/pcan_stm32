@@ -23,7 +23,7 @@ void sys_tick_handler(void)
 void systime_setup(void)
 {
 	/* clock rate / 1000 to get 1mS interrupt rate */
-	systick_set_reload(120000);
+	systick_set_reload(96000);
 	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
 	systick_counter_enable();
 	/* this done last */
