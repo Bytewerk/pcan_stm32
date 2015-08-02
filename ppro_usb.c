@@ -214,19 +214,20 @@ void ppro_usb_init(void) {
 
 void ppro_usb_poll(void) {
 	usbd_poll(usbdev);
+	ppro_usb_flush_all();
 
+	uint32_t now = get_time_ms();
 
-	if (ppro_status.timestamp_active && (ppro_status.t_next_timestamp <= get_time_ms())) {
+	if (ppro_status.timestamp_active && (ppro_status.t_next_timestamp <= now)) {
 		ppro_usb_send_timestamp(2);
-		ppro_status.t_next_timestamp += 1000;
+		ppro_status.t_next_timestamp = now + 1000;
 	}
 
 	for (uint8_t i=0; i<2; i++) {
-		if (ppro_status.busload_mode[i] && (ppro_status.t_next_busload[i] <= get_time_ms())) {
+		if (ppro_status.busload_mode[i] && (ppro_status.t_next_busload[i] <= now)) {
 			ppro_usb_send_busload(2, i);
-			ppro_status.t_next_busload[i] += 8;
+			ppro_status.t_next_busload[i] = now + 8;
 		}
 	}
 
-	ppro_usb_flush_all();
 }

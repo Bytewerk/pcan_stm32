@@ -241,6 +241,5 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 			pos += pcan_usbpro_sizeof_rec(request->data_type);
 		}
 	}
-	ppro_usb_flush_all();
 }
 
