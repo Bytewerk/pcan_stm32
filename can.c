@@ -74,6 +74,9 @@ static int init_can(uint32_t can) {
 	// use tx mailboxes in fifo mode
 	CAN_MCR(can) |= CAN_MCR_TXFP;
 
+	// set a catch-all filter for fifo 0
+	can_filter_id_mask_32bit_init(can, 0, 0, 0, 0, 1);
+
 	return 0;
 }
 
