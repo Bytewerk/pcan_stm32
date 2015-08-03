@@ -10,8 +10,12 @@
 
 #include <stdint.h>
 
-void delay_ms(uint32_t delay);
+void systime_setup(uint32_t cpufreq_kHz);
+
 uint32_t get_time_ms(void);
-void systime_setup(void);
+uint32_t get_time_us32(void);
+uint64_t get_time_us64(void);
+
+void delay_ms(uint32_t delay);
 
 #endif /* SYSTIME_H_ */

@@ -5,38 +5,38 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 
-volatile uint32_t system_millis;
+volatile uint32_t systick_ms;
+static uint32_t cpufreq = 1;
 
-
-/* monotonically increasing number of milliseconds from reset
- * overflows every 49 days if you're wondering
- */
-volatile uint32_t system_millis;
-
-/* Called when systick fires */
-void sys_tick_handler(void)
-{
-	system_millis++;
+void sys_tick_handler(void) {
+	systick_ms++;
 }
 
-/* Set up a timer to create 1mS ticks. */
-void systime_setup(void)
-{
-	/* clock rate / 1000 to get 1mS interrupt rate */
-	systick_set_reload(96000);
+void systime_setup(uint32_t cpufreq_kHz) {
+	cpufreq = cpufreq_kHz;
+	systick_set_reload(cpufreq_kHz-1);
 	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
 	systick_counter_enable();
-	/* this done last */
 	systick_interrupt_enable();
 }
 
-/* sleep for delay milliseconds */
-void delay_ms(uint32_t delay)
-{
-	uint32_t wake = system_millis + delay;
-	while (wake > system_millis);
+uint32_t get_time_ms(void) {
+	return systick_ms;
 }
 
-uint32_t get_time_ms(void) {
-	return system_millis;
+uint32_t get_time_us32(void) {
+	uint32_t us = 1000ul*systick_ms;
+	uint32_t ticks = systick_get_value();
+	return us + (1000ul*ticks)/cpufreq;
+}
+
+uint64_t get_time_us64(void) {
+	uint64_t us = 1000ull*systick_ms;
+	uint32_t ticks = systick_get_value();
+	return us + (1000ull*ticks)/cpufreq;
+}
+
+void delay_ms(uint32_t delay) {
+	uint32_t wake = systick_ms + delay;
+	while (wake > systick_ms);
 }

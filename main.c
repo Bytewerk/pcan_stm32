@@ -32,7 +32,7 @@ int main(void) {
 
 	rcc_clock_setup_hse_3v3(&clkcfg_96mhz);
 	//rcc_clock_setup_hse_3v3(&hse_8mhz_3v3[CLOCK_3V3_120MHZ]);
-	systime_setup();
+	systime_setup(96000);
 
 	candle_can_init();
 	ppro_usb_init();
