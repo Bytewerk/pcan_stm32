@@ -58,6 +58,25 @@ static int candle_is_in_init_mode(uint32_t can) {
 	return (CAN_MCR(can) & CAN_MCR_INRQ) && (CAN_MSR(can) & CAN_MSR_INAK);
 }
 
+static int candle_can_init(uint32_t can) {
+
+	if (candle_can_goto_init_mode(can)<0) {
+		return -1;
+	}
+
+	// use automatic bus-off management
+	// (leave bus-off state automatically if can status seems to be okay)
+	CAN_MCR(can) |= CAN_MCR_ABOM;
+
+	// lock full rx fifo (throw away newer messages)
+	CAN_MCR(can) |= CAN_MCR_RFLM;
+
+	// use tx mailboxes in fifo mode
+	CAN_MCR(can) |= CAN_MCR_TXFP;
+
+	return 0;
+}
+
 static int candle_can_goto_normal_mode(uint32_t can) {
 	// clear initialization request bit
 	CAN_MCR(can) &= ~CAN_MCR_INRQ;
@@ -101,7 +120,7 @@ void candle_can_init(void) {
 	gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO0 | GPIO1);
 	gpio_set_af(GPIOD, GPIO_AF9, GPIO0 | GPIO1);
 	candle_reset_can(CAN1);
-	candle_can_goto_init_mode(CAN1);
+	candle_can_init(CAN1);
 
 	// enable can2 peripheral
 	rcc_periph_clock_enable(RCC_GPIOB);
@@ -110,7 +129,7 @@ void candle_can_init(void) {
 	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO12 | GPIO13);
 	gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
 	candle_reset_can(CAN2);
-	candle_can_goto_init_mode(CAN2);
+	candle_can_init(CAN2);
 
 }
 
