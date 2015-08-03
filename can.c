@@ -117,12 +117,18 @@ void candle_can_init(void) {
 void can_poll_leds(void);
 
 static void candle_can_handle_tx_queue(uint8_t channel);
+static void candle_can_poll_rx(uint8_t channel);
 
 void candle_can_poll(void) {
-	can_poll_leds();
+
+	candle_can_poll_rx(0);
+	candle_can_poll_rx(1);
 
 	candle_can_handle_tx_queue(0);
 	candle_can_handle_tx_queue(1);
+
+	can_poll_leds();
+
 }
 
 void candle_can_register_rx_callback(can_rx_callback_t callback) {
@@ -222,6 +228,42 @@ static void candle_can_handle_tx_queue(uint8_t channel) {
 				can_queue_push_back(&data->tx_message_pool, item);
 			}
 		}
+	}
+}
+
+static void candle_can_handle_fifo(uint8_t channel, uint32_t fifo) {
+	assert( (channel==0) || (channel==1) );
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+
+	can_message_t msg;
+	msg.channel = channel;
+
+	uint32_t RIR = CAN_RIxR(can, fifo);
+
+	if (RIR & CAN_RIxR_IDE) {
+		msg.id_and_flags = can_flag_extid | ((RIR >> CAN_RIxR_EXID_SHIFT) & CAN_RIxR_EXID_MASK);
+	} else {
+		msg.id_and_flags = (RIR >> CAN_RIxR_STID_SHIFT) & CAN_RIxR_STID_MASK;
+	}
+
+	if (RIR & CAN_RIxR_RTR) {
+		msg.id_and_flags |= can_flag_rtr;
+	}
+
+	msg.dlc = CAN_RDTxR(can, fifo) & CAN_RDTxR_DLC_MASK;
+	msg.data32[0] = CAN_RDLxR(can, fifo);
+	msg.data32[1] = CAN_RDHxR(can, fifo);
+
+	can_notify_message(&msg);
+}
+
+static void candle_can_poll_rx(uint8_t channel) {
+	assert( (channel==0) || (channel==1) );
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+
+	while (CAN_RF0R(can) & CAN_RF0R_FMP0_MASK) { // there are messages waiting in FIFO0
+		candle_can_handle_fifo(channel, CAN_FIFO0);
+		CAN_RF0R(can) |= CAN_RF1R_RFOM1; // release fifo message
 	}
 }
 
