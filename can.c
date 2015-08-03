@@ -32,7 +32,7 @@ typedef struct {
 
 static channel_data_t channel_data[2];
 
-static void candle_reset_can(uint32_t can) {
+static void reset_can(uint32_t can) {
 	// set reset bit in master control register
 	CAN_MCR(can) |= CAN_MCR_RESET;
 	// wait for reset bit to become zero again (reset complete?)
@@ -58,7 +58,7 @@ static int candle_is_in_init_mode(uint32_t can) {
 	return (CAN_MCR(can) & CAN_MCR_INRQ) && (CAN_MSR(can) & CAN_MSR_INAK);
 }
 
-static int candle_can_init(uint32_t can) {
+static int init_can(uint32_t can) {
 
 	if (candle_can_goto_init_mode(can)<0) {
 		return -1;
@@ -119,8 +119,8 @@ void candle_can_init(void) {
 	gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0 | GPIO1);
 	gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO0 | GPIO1);
 	gpio_set_af(GPIOD, GPIO_AF9, GPIO0 | GPIO1);
-	candle_reset_can(CAN1);
-	candle_can_init(CAN1);
+	reset_can(CAN1);
+	init_can(CAN1);
 
 	// enable can2 peripheral
 	rcc_periph_clock_enable(RCC_GPIOB);
@@ -128,8 +128,8 @@ void candle_can_init(void) {
 	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
 	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO12 | GPIO13);
 	gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
-	candle_reset_can(CAN2);
-	candle_can_init(CAN2);
+	reset_can(CAN2);
+	init_can(CAN2);
 
 }
 
