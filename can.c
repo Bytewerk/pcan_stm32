@@ -80,18 +80,21 @@ void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_
 	// TODO goto init mode
 
 	uint32_t cfg = CAN_BTR(can);
-	cfg &= 0xFC8003FF; // clear all bits from sjw, ts1, ts2, brp
 
 	if (sjw>3) { sjw = 3; }
-	cfg |= (sjw<<24);
+	cfg &= ~CAN_BTR_SJW_MASK;
+	cfg |= (sjw<<CAN_BTR_SJW_SHIFT);
 
 	if (tseg2>7) { tseg2 = 7; }
-	cfg |= (tseg2<<20);
+	cfg &= ~CAN_BTR_TS2_MASK;
+	cfg |= (tseg2<<CAN_BTR_TS2_SHIFT);
 
 	if (tseg1>15) { tseg1 = 15; }
-	cfg |= (tseg1<<16);
+	cfg &= ~CAN_BTR_TS1_MASK;
+	cfg |= (tseg1<<CAN_BTR_TS1_SHIFT);
 
 	if (brp>1023) { brp = 1023; }
+	cfg &= ~CAN_BTR_BRP_MASK;
 	cfg |= brp;
 
 	CAN_BTR(can) = cfg;
