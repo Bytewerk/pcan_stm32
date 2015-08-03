@@ -116,8 +116,13 @@ void candle_can_init(void) {
 
 void can_poll_leds(void);
 
+static void candle_can_handle_tx_queue(uint8_t channel);
+
 void candle_can_poll(void) {
 	can_poll_leds();
+
+	candle_can_handle_tx_queue(0);
+	candle_can_handle_tx_queue(1);
 }
 
 void candle_can_register_rx_callback(can_rx_callback_t callback) {
@@ -145,18 +150,78 @@ void candle_can_send_message(const can_message_t *msg) {
 	/*
 	 * it's possible that we get messages via usb faster than we can send them out.
 	 * in that case, we want to queue them up.
-	 * for simplicity, we just put them in a queue here and leave the transmit handling to candle_can_poll()
+	 * for simplicity, we just put them in a queue here and leave the transmit handling
+	 * to candle_can_poll() / candle_can_handle_tx_queue()
 	 */
 
 	assert( (msg->channel==0) || (msg->channel==1) );
 	channel_data_t *data = &channel_data[msg->channel];
 	can_queue_item_t *item;
 
+	if (data->tx_message_pool.count==0) {
+		// no free slot in tx queue, try sending out messages
+		candle_can_handle_tx_queue(msg->channel);
+	}
+
 	if (can_queue_pop_front(&data->tx_message_pool, &item)) {
 		item->msg = *msg;
 		can_queue_push_back(&data->tx_queue, item);
+
+		// try to send message immediately, if possible
+		candle_can_handle_tx_queue(msg->channel);
 	} else {
-		// no space left in queue
+		// still no free slot in tx queue
+	}
+}
+
+static uint32_t find_empty_mailbox(uint32_t can) {
+	if ((CAN_TSR(can) & CAN_TSR_TME0) == CAN_TSR_TME0) {
+		return CAN_MBOX0;
+	} else if ((CAN_TSR(can) & CAN_TSR_TME1) == CAN_TSR_TME1) {
+		return CAN_MBOX1;
+	} else if ((CAN_TSR(can) & CAN_TSR_TME2) == CAN_TSR_TME2) {
+		return CAN_MBOX2;
+	} else {
+		return 0;
+	}
+}
+
+static void send_can_message(uint32_t can, uint32_t mailbox, can_message_t *msg) {
+	uint32_t id_and_flags = msg->id_and_flags;
+
+	if (id_and_flags & can_flag_extid) {
+		CAN_TIxR(can, mailbox) = CAN_TIxR_IDE | ((id_and_flags & 0x1FFFFFFF) << CAN_TIxR_EXID_SHIFT);
+	} else {
+		CAN_TIxR(can, mailbox) = (id_and_flags & 0x7FF) << CAN_TIxR_STID_SHIFT;
+	}
+
+	if (id_and_flags & can_flag_rtr) {
+		CAN_TIxR(can, mailbox) |= CAN_TIxR_RTR;
+	}
+
+	CAN_TDTxR(can, mailbox) &= ~CAN_TDTxR_DLC_MASK;
+	CAN_TDTxR(can, mailbox) |= (msg->dlc & CAN_TDTxR_DLC_MASK);
+	CAN_TDLxR(can, mailbox) = msg->data32[0];
+	CAN_TDLxR(can, mailbox) = msg->data32[1];
+	CAN_TIxR(can, mailbox) |= CAN_TIxR_TXRQ;
+}
+
+static void candle_can_handle_tx_queue(uint8_t channel) {
+	assert( (channel==0) || (channel==1) );
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+	channel_data_t *data = &channel_data[channel];
+
+	if (data->tx_queue.count>0) {
+		uint32_t mailbox = find_empty_mailbox(can);
+		if (mailbox) {
+			can_queue_item_t *item;
+			if (can_queue_pop_front(&data->tx_queue, &item)) {
+				send_can_message(can, mailbox, &item->msg);
+
+				// return message buffer to pool queue
+				can_queue_push_back(&data->tx_message_pool, item);
+			}
+		}
 	}
 }
 
