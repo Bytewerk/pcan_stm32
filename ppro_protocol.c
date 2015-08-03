@@ -157,7 +157,7 @@ void ppro_usb_send_timestamp(uint8_t ep) {
 	record.calibration_ts_rx.dummy[1] = 0;
 	record.calibration_ts_rx.dummy[2] = 0;
 	record.calibration_ts_rx.timestamp64[0] = 0;
-	record.calibration_ts_rx.timestamp64[1] = get_time_ms() * 1000;
+	record.calibration_ts_rx.timestamp64[1] = get_time_us64();
 	ppro_usb_enqueue_record(ep, &record);
 }
 
@@ -168,7 +168,7 @@ void ppro_usb_send_busload(uint8_t ep, uint8_t channel) {
 	record.buslast_rx.channel = channel;
 	record.buslast_rx.buslast_val = channel_data[0].bits_transferred;
 	channel_data[0].bits_transferred = 0;
-	record.buslast_rx.timestamp32 = get_time_ms() * 1000;
+	record.buslast_rx.timestamp32 = get_time_us32();
 	ppro_usb_enqueue_record(ep, &record);
 }
 

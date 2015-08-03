@@ -259,6 +259,7 @@ static void candle_can_handle_fifo(uint8_t channel, uint32_t fifo) {
 
 	can_message_t msg;
 	msg.channel = channel;
+	msg.timestamp = get_time_us32();
 
 	uint32_t RIR = CAN_RIxR(can, fifo);
 
