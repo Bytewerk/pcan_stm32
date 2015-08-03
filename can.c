@@ -22,6 +22,46 @@ typedef struct {
 
 static led_status_t led_status[2];
 
+
+static void candle_reset_can(uint32_t can) {
+	// set reset bit in master control register
+	CAN_MCR(can) |= CAN_MCR_RESET;
+	// wait for reset bit to become zero again (reset complete?)
+	while (CAN_MCR(can) & CAN_MCR(can));
+}
+
+static int candle_can_goto_init_mode(uint32_t can) {
+	// set initialization request bit in MCR (must also clear SLEEP bit)
+	CAN_MCR(can) &= ~CAN_MCR_SLEEP;
+	CAN_MCR(can) |= CAN_MCR_INRQ;
+
+	// wait for initialization mode confirmation
+	for (int i=0; i<0xFFFF; i++) {
+		if ((CAN_MSR(can) & CAN_MSR_INAK) == CAN_MSR_INAK) {
+			return 0; // controller is in initialization mode
+		}
+	}
+
+	return -1; // timeout waiting for INAK flag
+}
+
+static int candle_is_in_init_mode(uint32_t can) {
+	return (CAN_MCR(can) & CAN_MCR_INRQ) && (CAN_MSR(can) & CAN_MSR_INAK);
+}
+
+static int candle_can_goto_normal_mode(uint32_t can) {
+	// clear initialization request bit
+	CAN_MCR(can) &= ~CAN_MCR_INRQ;
+
+	for (int i=0; i<0x0FFFFF; i++) {
+		if ((CAN_MSR(can) & CAN_MSR_INAK) == 0) {
+			return 0; // controller is not in initialization mode any more
+		}
+	}
+
+	return -1; // timeout waiting for INAK flag to become zero
+}
+
 void candle_can_init(void) {
 	rx_callback = 0;
 	memset(led_status, 0, sizeof(led_status));
@@ -30,19 +70,24 @@ void candle_can_init(void) {
 	rcc_periph_clock_enable(RCC_GPIOD);
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO14 | GPIO15);
 
-	// enable can1
+	// enable can1 peripheral
 	rcc_periph_clock_enable(RCC_GPIOD);
 	rcc_periph_clock_enable(RCC_CAN1);
 	gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0 | GPIO1);
 	gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO0 | GPIO1);
 	gpio_set_af(GPIOD, GPIO_AF9, GPIO0 | GPIO1);
+	candle_reset_can(CAN1);
+	candle_can_goto_init_mode(CAN1);
 
-	// enable can2
+	// enable can2 peripheral
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_CAN2);
 	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13);
 	gpio_set_output_options(GPIOB, GPIO_OTYPE_PP, GPIO_OSPEED_100MHZ, GPIO12 | GPIO13);
 	gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
+	candle_reset_can(CAN2);
+	candle_can_goto_init_mode(CAN2);
+
 }
 
 void can_poll_leds(void);
@@ -77,7 +122,10 @@ void candle_can_send_message(const can_message_t *msg) {
 void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {
 	uint32_t can = (channel==0) ? CAN1 : CAN2;
 
-	// TODO goto init mode
+	int was_in_init_mode = candle_is_in_init_mode(can);
+	if (!was_in_init_mode) {
+		candle_can_goto_init_mode(can);
+	}
 
 	uint32_t cfg = CAN_BTR(can);
 
@@ -99,25 +147,37 @@ void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_
 
 	CAN_BTR(can) = cfg;
 
-	// TODO leave init mode
+	if (!was_in_init_mode) {
+		candle_can_goto_normal_mode(can);
+	}
 }
 
 void candle_can_set_silent(uint8_t channel, uint8_t silent_mode) {
 	uint32_t can = (channel==0) ? CAN1 : CAN2;
 
-	// TODO goto init mode
+	int was_in_init_mode = candle_is_in_init_mode(can);
+	if (!was_in_init_mode) {
+		candle_can_goto_init_mode(can);
+	}
+
 	if (silent_mode) {
 		CAN_BTR(can) = CAN_BTR(can) | 0x80000000; // set SILM bit
 	} else {
 		CAN_BTR(can) = CAN_BTR(can) & 0x7FFFFFFF; // clear SILM bit
 	}
-	// TODO leave init mode
+
+	if (!was_in_init_mode) {
+		candle_can_goto_normal_mode(can);
+	}
 }
 
 void candle_can_set_bus_active(uint8_t channel, uint16_t mode) {
-	// TODO implement me
-	(void)channel;
-	(void)mode;
+	uint32_t can = (channel==0) ? CAN1 : CAN2;
+	if (mode) {
+		candle_can_goto_normal_mode(can);
+	} else {
+		candle_can_goto_init_mode(can);
+	}
 }
 
 uint8_t candle_can_calc_message_len(const can_message_t *msg) {
