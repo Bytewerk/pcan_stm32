@@ -7,7 +7,9 @@
 
 #include "can.h"
 #include "systime.h"
+#include "can_queue.h"
 #include <string.h>
+#include <assert.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/can.h>
@@ -22,6 +24,13 @@ typedef struct {
 
 static led_status_t led_status[2];
 
+typedef struct {
+	can_queue_item_t txqueue_items[TX_QUEUE_LENGTH];
+	can_queue_t tx_queue;
+	can_queue_t tx_message_pool;
+} channel_data_t;
+
+static channel_data_t channel_data[2];
 
 static void candle_reset_can(uint32_t can) {
 	// set reset bit in master control register
@@ -62,9 +71,24 @@ static int candle_can_goto_normal_mode(uint32_t can) {
 	return -1; // timeout waiting for INAK flag to become zero
 }
 
+static void clear_tx_queue(uint8_t channel) {
+	assert((channel==0) || (channel==1));
+	channel_data_t *data = &channel_data[channel];
+
+	can_queue_init(&data->tx_queue);
+	can_queue_init(&data->tx_message_pool);
+	memset(data->txqueue_items, 0, sizeof(data->txqueue_items));
+	for (int i=0; i<TX_QUEUE_LENGTH; i++) {
+		can_queue_push_back(&data->tx_message_pool, &data->txqueue_items[i]);
+	}
+}
+
 void candle_can_init(void) {
 	rx_callback = 0;
 	memset(led_status, 0, sizeof(led_status));
+
+	clear_tx_queue(0);
+	clear_tx_queue(1);
 
 	// enable led outputs
 	rcc_periph_clock_enable(RCC_GPIOD);
@@ -108,15 +132,32 @@ void can_notify_message(const can_message_t *msg) {
 }
 
 void candle_can_send_message(const can_message_t *msg) {
-	// TODO really implement me
-
+/*
+	// simple echo to test the USB part without having a working can hardware
 	can_message_t clone = *msg;
 	if (clone.channel==0) {
 		clone.channel = 1;
 	} else {
 		clone.channel = 0;
 	}
-	can_notify_message(&clone);
+	can_notify_message(&clone); */
+
+	/*
+	 * it's possible that we get messages via usb faster than we can send them out.
+	 * in that case, we want to queue them up.
+	 * for simplicity, we just put them in a queue here and leave the transmit handling to candle_can_poll()
+	 */
+
+	assert( (msg->channel==0) || (msg->channel==1) );
+	channel_data_t *data = &channel_data[msg->channel];
+	can_queue_item_t *item;
+
+	if (can_queue_pop_front(&data->tx_message_pool, &item)) {
+		item->msg = *msg;
+		can_queue_push_back(&data->tx_queue, item);
+	} else {
+		// no space left in queue
+	}
 }
 
 void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_t tseg2, uint8_t sjw) {

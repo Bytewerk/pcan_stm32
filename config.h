@@ -9,5 +9,6 @@
 #define CONFIG_H_
 
 //#define USE_USB_HS
+#define TX_QUEUE_LENGTH 32
 
 #endif /* CONFIG_H_ */

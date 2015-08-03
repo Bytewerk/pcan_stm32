@@ -9,6 +9,7 @@
 #define CAN_H_
 
 #include <stdint.h>
+#include "config.h"
 
 typedef struct  __attribute__ ((packed)) {
 
