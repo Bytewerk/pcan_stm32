@@ -125,6 +125,12 @@ void candle_can_init(void) {
 	reset_can(CAN1);
 	init_can(CAN1);
 
+	// enable can1 transceiver
+	rcc_periph_clock_enable(RCC_GPIOC);
+	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO8);
+	gpio_clear(GPIOC, GPIO8);
+
+
 	// enable can2 peripheral
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_CAN2);
@@ -133,6 +139,11 @@ void candle_can_init(void) {
 	gpio_set_af(GPIOB, GPIO_AF9, GPIO12 | GPIO13);
 	reset_can(CAN2);
 	init_can(CAN2);
+
+	// enable can2 transceiver
+	rcc_periph_clock_enable(RCC_GPIOD);
+	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO11);
+	gpio_clear(GPIOD, GPIO11);
 
 }
 
