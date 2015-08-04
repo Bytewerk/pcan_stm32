@@ -36,7 +36,7 @@ static void reset_can(uint32_t can) {
 	// set reset bit in master control register
 	CAN_MCR(can) |= CAN_MCR_RESET;
 	// wait for reset bit to become zero again (reset complete?)
-	while (CAN_MCR(can) & CAN_MCR(can));
+	while (CAN_MCR(can) & CAN_MCR_RESET);
 }
 
 static int candle_can_goto_init_mode(uint32_t can) {
@@ -240,7 +240,7 @@ static void send_can_message(uint32_t can, uint32_t mailbox, can_message_t *msg)
 
 	CAN_TDTxR(can, mailbox) &= ~CAN_TDTxR_DLC_MASK;
 	CAN_TDTxR(can, mailbox) |= (msg->dlc & CAN_TDTxR_DLC_MASK);
-	CAN_TDLxR(can, mailbox) = msg->data32[0];
+	CAN_TDHxR(can, mailbox) = msg->data32[0];
 	CAN_TDLxR(can, mailbox) = msg->data32[1];
 	CAN_TIxR(can, mailbox) |= CAN_TIxR_TXRQ;
 }
@@ -285,8 +285,8 @@ static void candle_can_handle_fifo(uint8_t channel, uint32_t fifo) {
 	}
 
 	msg.dlc = CAN_RDTxR(can, fifo) & CAN_RDTxR_DLC_MASK;
-	msg.data32[0] = CAN_RDLxR(can, fifo);
-	msg.data32[1] = CAN_RDHxR(can, fifo);
+	msg.data32[0] = CAN_RDHxR(can, fifo);
+	msg.data32[1] = CAN_RDLxR(can, fifo);
 
 	can_notify_message(&msg);
 }
@@ -310,6 +310,10 @@ void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_
 	}
 
 	uint32_t cfg = CAN_BTR(can);
+
+	// TODO remove before flight - self test mode
+	cfg |= CAN_BTR_LBKM;
+	cfg |= CAN_BTR_SILM;
 
 	if (sjw>3) { sjw = 3; }
 	cfg &= ~CAN_BTR_SJW_MASK;
