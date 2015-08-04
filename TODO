@@ -1,10 +1,11 @@
-- implement timestamp handling
+- test timestamp handling
 - test on real hardware as soon as avail
 - validate default bit timings (from linux and windows) with logic analyzer
 - validate windows drivers are installed automatically, at least when using USB_HS mode
 - do stress tests (real can traces, canoe)
 - write a README, document everything
 - make a linux test suite (connect can1 & can2 in hardware)
+- implement can error handling
 
 - implement error frame generation (how?)
 - add our own usb protocol
