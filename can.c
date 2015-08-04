@@ -74,9 +74,6 @@ static int init_can(uint32_t can) {
 	// use tx mailboxes in fifo mode
 	CAN_MCR(can) |= CAN_MCR_TXFP;
 
-	// set a catch-all filter for fifo 0
-	can_filter_id_mask_32bit_init(can, 0, 0, 0, 0, 1);
-
 	return 0;
 }
 
@@ -144,6 +141,18 @@ void candle_can_init(void) {
 	rcc_periph_clock_enable(RCC_GPIOD);
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO11);
 	gpio_clear(GPIOD, GPIO11);
+
+	// init filter banks
+	CAN_FMR(CAN1) |= CAN_FMR_FINIT; // switch filter banks to init mode
+
+	// configure usage of 14 filter banks for can1 and 14 banks for can2
+	CAN_FMR(CAN1) &= ~CAN_FMR_CAN2SB_MASK;
+	CAN_FMR(CAN1) |= (14<<CAN_FMR_CAN2SB_SHIFT);
+
+	can_filter_id_mask_32bit_init(CAN1,  0, 0, 0, 0, 1); // set a catch-all filter for CAN1 fifo 0
+	can_filter_id_mask_32bit_init(CAN2, 14, 0, 0, 0, 1); // set a catch-all filter for CAN2 fifo 0
+
+	CAN_FMR(CAN1) &= ~CAN_FMR_FINIT; // switch filter banks to active mode
 
 }
 
