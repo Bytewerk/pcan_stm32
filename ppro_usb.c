@@ -79,7 +79,7 @@ static struct pcan_usbpro_time_mode_t time_mode = {
 
 static void ppro_usb_rx_handler(usbd_device *usbd_dev, uint8_t ep)
 {
-	uint8_t buf[256];
+	uint8_t buf[128];
 	int len = usbd_ep_read_packet(usbd_dev, ep, buf, sizeof(buf));
 	ppro_usb_protocol_handle_data(ep, buf, len);
 }
