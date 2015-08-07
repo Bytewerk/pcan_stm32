@@ -44,15 +44,19 @@ void ppro_usb_protocol_init(usbd_device *usbd_dev) {
 	memset(channel_data, 0, sizeof(channel_data));
 }
 
-static void ppro_usb_flush(uint8_t ep) {
+static int ppro_usb_flush(uint8_t ep) {
 	assert((ep==1)||(ep==2));
 	channel_data_t *data = &channel_data[ep-1];
 	if (data->output_buffer.record_count > 0) {
-		while (usbd_ep_write_packet(dev, 0x80|ep, &data->output_buffer, 4+data->output_buffer_pos) == 0);
-		data->output_buffer.record_count = 0;
-		data->output_buffer_pos = 0;
-		data->output_buffer.message_counter++;
+		int bytes_written = usbd_ep_write_packet(dev, 0x80|ep, &data->output_buffer, 4+data->output_buffer_pos);
+		if (bytes_written != 0) {
+			data->output_buffer.record_count = 0;
+			data->output_buffer_pos = 0;
+			data->output_buffer.message_counter++;
+			return bytes_written;
+		}
 	}
+	return 0;
 }
 
 void ppro_usb_flush_all(void) {
@@ -60,19 +64,35 @@ void ppro_usb_flush_all(void) {
 	ppro_usb_flush(2);
 }
 
-static void ppro_usb_enqueue_record(uint8_t ep, union pcan_usbpro_rec_t *record) {
+static int ppro_usb_buffer_space_left(channel_data_t *data) {
+	return sizeof(data->output_buffer.data) - data->output_buffer_pos;
+}
+
+static int ppro_usb_enqueue_record(uint8_t ep, union pcan_usbpro_rec_t *record) {
 	assert((ep==1)||(ep==2));
 	channel_data_t *data = &channel_data[ep-1];
 
-	uint8_t record_length = pcan_usbpro_sizeof_rec(record->data_type);
-	if ((data->output_buffer_pos + record_length) > sizeof(data->output_buffer.data)) {
-		// not enough space left in buffer
-		ppro_usb_flush(ep);
+	int space_left = ppro_usb_buffer_space_left(data);
+
+	int record_length = pcan_usbpro_sizeof_rec(record->data_type);
+	assert(record_length>0); // record_length<=0 means that we don't know the record type. but we should know all messages that we are sending!
+
+	if (space_left < record_length) {
+		// buffer full? try to send now.
+		if (ppro_usb_flush(ep)>0) {
+			space_left = ppro_usb_buffer_space_left(data);
+		}
 	}
 
-	data->output_buffer.record_count++;
-	memcpy(&data->output_buffer.data[data->output_buffer_pos], record, record_length);
-	data->output_buffer_pos += record_length;
+	if (space_left >= record_length) {
+		data->output_buffer.record_count++;
+		memcpy(&data->output_buffer.data[data->output_buffer_pos], record, record_length);
+		data->output_buffer_pos += record_length;
+		return 0;
+	} else {
+		return -1;
+	}
+
 }
 
 static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
