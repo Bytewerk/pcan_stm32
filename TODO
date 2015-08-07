@@ -1,7 +1,9 @@
 - test timestamp handling
+- handle can messages in interrupt for better timestamp accuracy
 - test on real hardware as soon as avail
 - validate default bit timings (from linux and windows) with logic analyzer
 - validate windows drivers are installed automatically, at least when using USB_HS mode
+- use usb tx complete callback to allow for parallel message handling on both channels
 - do stress tests (real can traces, canoe)
 - write a README, document everything
 - make a linux test suite (connect can1 & can2 in hardware)
