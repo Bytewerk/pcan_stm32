@@ -234,8 +234,8 @@ void ppro_usb_protocol_handle_data(uint8_t ep, uint8_t *buf, int len) {
 					);
 					break;
 				default:
-					// unknown request type, this is bad because we do not know how long the request would be...
-					return;
+					// unknown request type
+					break;
 			}
 
 			pos += pcan_usbpro_sizeof_rec(request->data_type);
