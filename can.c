@@ -249,8 +249,8 @@ static void send_can_message(uint32_t can, uint32_t mailbox, can_message_t *msg)
 
 	CAN_TDTxR(can, mailbox) &= ~CAN_TDTxR_DLC_MASK;
 	CAN_TDTxR(can, mailbox) |= (msg->dlc & CAN_TDTxR_DLC_MASK);
-	CAN_TDHxR(can, mailbox) = msg->data32[0];
-	CAN_TDLxR(can, mailbox) = msg->data32[1];
+	CAN_TDHxR(can, mailbox) = msg->data32[1];
+	CAN_TDLxR(can, mailbox) = msg->data32[0];
 	CAN_TIxR(can, mailbox) |= CAN_TIxR_TXRQ;
 }
 
@@ -294,8 +294,8 @@ static void candle_can_handle_fifo(uint8_t channel, uint32_t fifo) {
 	}
 
 	msg.dlc = CAN_RDTxR(can, fifo) & CAN_RDTxR_DLC_MASK;
-	msg.data32[0] = CAN_RDHxR(can, fifo);
-	msg.data32[1] = CAN_RDLxR(can, fifo);
+	msg.data32[0] = CAN_RDLxR(can, fifo);
+	msg.data32[1] = CAN_RDHxR(can, fifo);
 
 	can_notify_message(&msg);
 }
