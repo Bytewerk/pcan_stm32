@@ -102,7 +102,7 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 	uint8_t  sjw   = ((ccbt>>14) & 0x03) + 1;
 	uint16_t brp_ppro = (ccbt & 0x3fff) + 1;
 
-	uint16_t brp_stm = (24 * brp_ppro) / 56;
+	uint16_t brp_stm = (48 * brp_ppro) / 56;
 	candle_can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
 }
 

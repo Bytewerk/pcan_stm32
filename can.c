@@ -124,9 +124,8 @@ void candle_can_init(void) {
 
 	// enable can1 transceiver
 	rcc_periph_clock_enable(RCC_GPIOC);
-	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO8);
-	gpio_clear(GPIOC, GPIO8);
-
+	gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO6);
+	gpio_clear(GPIOC, GPIO6);
 
 	// enable can2 peripheral
 	rcc_periph_clock_enable(RCC_GPIOB);
@@ -185,15 +184,6 @@ void can_notify_message(const can_message_t *msg) {
 }
 
 void candle_can_send_message(const can_message_t *msg) {
-/*
-	// simple echo to test the USB part without having a working can hardware
-	can_message_t clone = *msg;
-	if (clone.channel==0) {
-		clone.channel = 1;
-	} else {
-		clone.channel = 0;
-	}
-	can_notify_message(&clone); */
 
 	/*
 	 * it's possible that we get messages via usb faster than we can send them out.
@@ -320,25 +310,21 @@ void candle_can_set_bitrate(uint8_t channel, uint16_t brp, uint8_t tseg1, uint8_
 
 	uint32_t cfg = CAN_BTR(can);
 
-	// TODO remove before flight - self test mode
-	cfg |= CAN_BTR_LBKM;
-	cfg |= CAN_BTR_SILM;
-
-	if (sjw>3) { sjw = 3; }
+	if (sjw>4) { sjw = 4; }
 	cfg &= ~CAN_BTR_SJW_MASK;
-	cfg |= (sjw<<CAN_BTR_SJW_SHIFT);
+	cfg |= ((sjw-1)<<CAN_BTR_SJW_SHIFT);
 
-	if (tseg2>7) { tseg2 = 7; }
+	if (tseg2>8) { tseg2 = 8; }
 	cfg &= ~CAN_BTR_TS2_MASK;
-	cfg |= (tseg2<<CAN_BTR_TS2_SHIFT);
+	cfg |= ((tseg2-1)<<CAN_BTR_TS2_SHIFT);
 
-	if (tseg1>15) { tseg1 = 15; }
+	if (tseg1>16) { tseg1 = 16; }
 	cfg &= ~CAN_BTR_TS1_MASK;
-	cfg |= (tseg1<<CAN_BTR_TS1_SHIFT);
+	cfg |= ((tseg1-1)<<CAN_BTR_TS1_SHIFT);
 
-	if (brp>1023) { brp = 1023; }
+	if (brp>1024) { brp = 1024; }
 	cfg &= ~CAN_BTR_BRP_MASK;
-	cfg |= brp;
+	cfg |= (brp-1);
 
 	CAN_BTR(can) = cfg;
 
