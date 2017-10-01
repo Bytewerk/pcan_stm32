@@ -205,6 +205,9 @@ void ppro_usb_init(void) {
 			usb_strings, 10,
 			usbd_control_buffer, sizeof(usbd_control_buffer));
 
+	// Disable VBUS sense
+	//#include <libopencm3/stm32/otg_fs.h>
+	//OTG_FS_GCCFG |= OTG_GCCFG_NOVBUSSENS;
 #endif
 
 

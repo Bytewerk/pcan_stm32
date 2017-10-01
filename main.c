@@ -16,16 +16,17 @@
 
 int main(void) {
 
-	clock_scale_t clkcfg_96mhz = {
+	struct rcc_clock_scale clkcfg_96mhz = {
 		.pllm = 4,
 		.plln = 192,
 		.pllp = 4,
 		.pllq = 8,
-		.flash_config = FLASH_ACR_ICE | FLASH_ACR_DCE | FLASH_ACR_LATENCY_3WS, // TODO check if this is sane (seems to work for 48MHz as well as 120MHz)
-		.hpre = 1,
-		.ppre1 = 4,
-		.ppre2 = 2,
+		.flash_config = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_3WS, // TODO check if this is sane (seems to work for 48MHz as well as 120MHz)
+		.hpre = RCC_CFGR_HPRE_DIV_NONE,
+		.ppre1 = RCC_CFGR_PPRE_DIV_4,
+		.ppre2 = RCC_CFGR_PPRE_DIV_2,
 		.power_save = 1,
+		.ahb_frequency = 96000000,
 		.apb1_frequency = 24000000,
 		.apb2_frequency = 48000000
 	};
