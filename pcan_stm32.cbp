@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="pcan_stm32" />
+		<Option pch_mode="2" />
+		<Option compiler="arm-none-gcc" />
+		<Option show_notes="0">
+			<notes>
+				<![CDATA[/* Para depurar, en Propiedades del proyecto, debugger
+ * <project> agregar
+ * connection type: TCP
+ * ipaddress: localhost
+ * port: 3333
+ * additional gdb commands, after connection:
+ *      monitor reset halt
+ *      load
+ *      tbreak main
+ *
+ * Para usar las librerias matematicas CMSIS
+ * agregar a los "define" lo siguiente: ARM_MATH_CM4
+ * en el directorio de busqueda del linker agregar: $(#CMSIS)/../Lib/GCC
+ * en las opciones del linker agregar -larm_corterM4lf_math
+ * usar #include <arm_math.h>]]>
+			</notes>
+		</Option>
+		<Build>
+			<Target title="Debug">
+				<Option platforms="Unix;Mac;" />
+				<Option output="Debug/pcan_stm32.elf" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="Debug" />
+				<Option type="5" />
+				<Option compiler="arm-none-gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DDEBUG" />
+				</Compiler>
+				<ExtraCommands>
+					<Add after="arm-none-eabi-objcopy -O ihex ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.hex" />
+					<Add after="arm-none-eabi-objcopy -O binary ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.bin" />
+					<Add after="arm-none-eabi-objdump -h -S ${PROJECT_DIR}${TARGET_OUTPUT_FILE} &gt; ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.lst" />
+					<Add after="arm-none-eabi-size --format=berkeley ${PROJECT_DIR}${TARGET_OUTPUT_FILE}" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Release (STM32F407VG)">
+				<Option platforms="Unix;Mac;" />
+				<Option output="Release_F407VG/pcan_stm32f407vg.elf" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="Release_F407VG" />
+				<Option type="5" />
+				<Option compiler="arm-none-gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-T stm32f4-discovery.ld" />
+				</Linker>
+				<ExtraCommands>
+					<Add after="arm-none-eabi-objcopy -O ihex ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.hex" />
+					<Add after="arm-none-eabi-objcopy -O binary ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.bin" />
+					<Add after="arm-none-eabi-objdump -h -S ${PROJECT_DIR}${TARGET_OUTPUT_FILE} &gt; ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.lst" />
+					<Add after="arm-none-eabi-size --format=berkeley ${PROJECT_DIR}${TARGET_OUTPUT_FILE}" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Release (STM32F407VE)">
+				<Option platforms="Unix;Mac;" />
+				<Option output="Release_F407VE/pcan_stm32f407ve.elf" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="Release_F407VE" />
+				<Option type="5" />
+				<Option compiler="arm-none-gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DDISABLE_VBUS_SENSE" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-T stm32f407vet6.ld" />
+				</Linker>
+				<ExtraCommands>
+					<Add after="arm-none-eabi-objcopy -O ihex ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.hex" />
+					<Add after="arm-none-eabi-objcopy -O binary ${PROJECT_DIR}${TARGET_OUTPUT_FILE}  ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.bin" />
+					<Add after="arm-none-eabi-objdump -h -S ${PROJECT_DIR}${TARGET_OUTPUT_FILE} &gt; ${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.lst" />
+					<Add after="arm-none-eabi-size --format=berkeley ${PROJECT_DIR}${TARGET_OUTPUT_FILE}" />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Debug (Win)">
+				<Option platforms="Windows;" />
+				<Option output="Debug/pcan_stm32.elf" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="Debug" />
+				<Option type="5" />
+				<Option compiler="arm-none-gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+				<ExtraCommands>
+					<Add after='arm-none-eabi-objcopy -O ihex &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot;  &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.hex&quot;' />
+					<Add after='arm-none-eabi-objcopy -O binary &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot; &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.bin&quot;' />
+					<Add after='cmd /c &quot;arm-none-eabi-objdump -h -S &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot; &gt; &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.lst&quot;' />
+					<Add after='arm-none-eabi-size --format=berkeley &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot;' />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Target title="Release (Win)">
+				<Option platforms="Windows;" />
+				<Option output="Release/pcan_stm32.elf" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="Release" />
+				<Option type="5" />
+				<Option compiler="arm-none-gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+				<ExtraCommands>
+					<Add after='arm-none-eabi-objcopy -O ihex &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot;  &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.hex&quot;' />
+					<Add after='arm-none-eabi-objcopy -O binary &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot; &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.bin&quot;' />
+					<Add after='cmd /c &quot;arm-none-eabi-objdump -h -S &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot; &gt; &quot;${PROJECT_DIR}${TARGET_OUTPUT_DIR}${TARGET_OUTPUT_BASENAME}.lst&quot;' />
+					<Add after='arm-none-eabi-size --format=berkeley &quot;${PROJECT_DIR}${TARGET_OUTPUT_FILE}&quot;' />
+					<Mode after="always" />
+				</ExtraCommands>
+			</Target>
+			<Environment>
+				<Variable name="DFU_ADDRESS" value="0x08000000:leave" />
+				<Variable name="DFU_ALT" value="0" />
+				<Variable name="DFU_DEVICE" value="0483:DF11" />
+				<Variable name="OPENOCD_CONFIG" value="stm32f407ve.cfg" />
+				<Variable name="OPENOCD_CONFIG_JTAG" value="target/stm32f4x.cfg" />
+			</Environment>
+		</Build>
+		<Compiler>
+			<Add option="-mcpu=cortex-m4" />
+			<Add option="-mfpu=fpv4-sp-d16" />
+			<Add option="-mthumb" />
+			<Add option="-mfloat-abi=hard" />
+			<Add option="-fno-common" />
+			<Add option="-Wall" />
+			<Add option="-fmessage-length=0" />
+			<Add option="-ffunction-sections" />
+			<Add option="-fdata-sections" />
+			<Add option="-mhard-float" />
+			<Add option="-DSTM32F4" />
+			<Add directory="libopencm3/include" />
+		</Compiler>
+		<Linker>
+			<Add option="--static" />
+			<Add option="-nostartfiles" />
+			<Add option="-Wl,--gc-sections" />
+			<Add option="-Wl,-Map,map.txt" />
+			<Add option="--specs=rdimon.specs" />
+			<Add option="-lc" />
+			<Add option="-lrdimon" />
+			<Add option="-mcpu=cortex-m4" />
+			<Add option="-mhard-float" />
+			<Add option="-mfloat-abi=hard" />
+			<Add option="-mfpu=fpv4-sp-d16" />
+			<Add option="-mthumb" />
+			<Add option="-Wl,--start-group" />
+			<Add option="-lgcc" />
+			<Add option="-lnosys" />
+			<Add option="-Wl,--end-group" />
+			<Add library="opencm3_stm32f4" />
+			<Add directory="libopencm3/lib" />
+		</Linker>
+		<Unit filename="Makefile" />
+		<Unit filename="Makefile.include" />
+		<Unit filename="can.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="can.h" />
+		<Unit filename="can_queue.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="can_queue.h" />
+		<Unit filename="config.h" />
+		<Unit filename="external/pcan_usbpro_fw.h" />
+		<Unit filename="external/pcan_usbpro_sizeof_rec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="external/pcan_usbpro_sizeof_rec.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ppro_protocol.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ppro_protocol.h" />
+		<Unit filename="ppro_usb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ppro_usb.h" />
+		<Unit filename="ppro_usb_descr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ppro_usb_descr.h" />
+		<Unit filename="stm32f4-discovery.ld" />
+		<Unit filename="stm32f407vet6.ld" />
+		<Unit filename="systime.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="systime.h" />
+		<Extensions>
+			<code_completion />
+			<debugger>
+				<remote_debugging>
+					<options conn_type="0" serial_baud="115200" ip_address="localhost" ip_port="3333" />
+				</remote_debugging>
+				<remote_debugging target="Release (STM32F407VG)">
+					<options conn_type="0" serial_baud="115200" additional_cmds="monitor reset hal&#x0A;load" />
+				</remote_debugging>
+				<remote_debugging target="Release (Win)">
+					<options conn_type="0" serial_baud="115200" additional_cmds="monitor reset hal&#x0A;load" />
+				</remote_debugging>
+				<remote_debugging target="Debug (Win)">
+					<options conn_type="0" serial_baud="115200" additional_cmds="monitor reset hal&#x0A;monitor arm semihosting enable&#x0A;load&#x0A;tbreak main" />
+				</remote_debugging>
+				<remote_debugging target="Debug">
+					<options conn_type="0" serial_baud="115200" additional_cmds="monitor reset halt&#x0A;monitor arm semihosting enable&#x0A;load&#x0A;tbreak main" />
+				</remote_debugging>
+				<remote_debugging target="Release (STM32F407VE)">
+					<options conn_type="0" serial_baud="115200" additional_cmds="monitor reset hal&#x0A;load" />
+				</remote_debugging>
+			</debugger>
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
