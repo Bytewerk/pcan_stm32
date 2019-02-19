@@ -3,6 +3,14 @@
 *.ko
 *.obj
 *.elf
+*.d
+
+# Generated files
+generated.*.ld
+
+# Codeblocks files
+*.depend
+*.layout
 
 # Precompiled Headers
 *.gch
@@ -27,6 +35,8 @@
 *.i*86
 *.x86_64
 *.hex
+Release**/
+Debug**/
 
 # Debug files
 *.dSYM/

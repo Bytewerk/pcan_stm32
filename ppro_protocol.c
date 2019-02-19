@@ -99,10 +99,10 @@ static void ppro_set_bitrate(uint8_t channel, uint32_t ccbt) {
 	//uint8_t  tripple_sample_mode = ccbt>>23 & 0x01;
 	uint8_t  tseg2 = ((ccbt >> 20) & 0x07) + 1;
 	uint8_t  tseg1 = ((ccbt >> 16) & 0x0F) + 1;
-	uint8_t  sjw   = ((ccbt>>14) & 0x03) + 1;
+	uint8_t  sjw   = ((ccbt >> 24) & 0x03) + 1;
 	uint16_t brp_ppro = (ccbt & 0x3fff) + 1;
 
-	uint16_t brp_stm = (48 * brp_ppro) / 56;
+	uint16_t brp_stm = (24 * brp_ppro) / 56;
 	candle_can_set_bitrate(channel, brp_stm, tseg1, tseg2, sjw);
 }
 
